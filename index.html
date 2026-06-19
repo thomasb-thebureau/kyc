@@ -9,8 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 /* ===== Charte partagée (alignée theme.css) ===== */
-:root{--encre:#0F0F0F;--creme:#FAFAFA;--cf:rgba(15,15,15,.09);--or:#B09438;--or2:#B09438;--orAA:#7A6015;--op:rgba(176,148,56,.08);--gris:rgba(15,15,15,.60);--gc:rgba(15,15,15,.45);--blanc:#fff;--vert:#1E4035;--vp:rgba(30,64,53,.06);--ivoire:#F5EFE5;--ok:#1E7A4D;--err:#b3261e}
-body.dark{--creme:#1a1a1a;--blanc:#222;--encre:#F5EFE5;--cf:rgba(255,255,255,.10);--gris:rgba(255,255,255,.62);--gc:rgba(255,255,255,.45);--or:#D4B870;--or2:#D4B870;--orAA:#D4B870;--op:rgba(212,184,112,.12);--vert:#4a9a7a;--vp:rgba(74,154,122,.12);--ivoire:#F5EFE5;--ok:#4cae84}
+:root{--encre:#0F0F0F;--creme:#FAFAFA;--cf:rgba(15,15,15,.09);--or:#B09438;--or2:#B09438;--orAA:#7A6015;--op:rgba(176,148,56,.08);--gris:rgba(15,15,15,.60);--gc:rgba(15,15,15,.45);--blanc:#fff;--vert:#1E4035;--vp:rgba(30,64,53,.06);--ivoire:#F5EFE5;--ok:#1E7A4D;--err:#b3261e;--cfield:rgba(15,15,15,.45)}
+body.dark{--creme:#1a1a1a;--blanc:#222;--encre:#F5EFE5;--cf:rgba(255,255,255,.10);--gris:rgba(255,255,255,.62);--gc:rgba(255,255,255,.45);--or:#D4B870;--or2:#D4B870;--orAA:#D4B870;--op:rgba(212,184,112,.12);--vert:#4a9a7a;--vp:rgba(74,154,122,.12);--ivoire:#F5EFE5;--ok:#4cae84;--cfield:rgba(255,255,255,.38)}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;font-family:'Plus Jakarta Sans',sans-serif;font-weight:300;color:var(--encre);background:var(--creme);min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.6}
@@ -36,13 +36,13 @@ body.dark .logo-div{background:rgba(255,255,255,.15)}
 .logo-tag{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--orAA);font-weight:700}
 body.dark .logo-tag{color:var(--or)}
 .top-right{display:flex;align-items:center;gap:12px}
-.lang-toggle{display:inline-flex;align-items:center;height:30px;border:1px solid var(--cf);border-radius:50px;overflow:hidden}
+.lang-toggle{display:inline-flex;align-items:center;height:30px;border:1px solid var(--cfield);border-radius:50px;overflow:hidden}
 .lang-toggle button{background:none;border:none;padding:0 12px;height:100%;font:700 10px 'Plus Jakarta Sans';letter-spacing:.1em;color:var(--gc);cursor:pointer;transition:all .25s}
 .lang-toggle button.on{background:var(--vert);color:#F5EFE5}
 body.dark .lang-toggle{border-color:rgba(255,255,255,.15)}
 body.dark .lang-toggle button{color:rgba(255,255,255,.45)}
 body.dark .lang-toggle button.on{background:var(--or);color:#1a1a1a}
-.dark-toggle{background:none;border:1px solid var(--cf);border-radius:50px;width:34px;height:30px;cursor:pointer;color:var(--gris);display:flex;align-items:center;justify-content:center;transition:all .25s}
+.dark-toggle{background:none;border:1px solid var(--cfield);border-radius:50px;width:34px;height:30px;cursor:pointer;color:var(--gris);display:flex;align-items:center;justify-content:center;transition:all .25s}
 .dark-toggle:hover{border-color:var(--or);color:var(--orAA)}
 .dark-toggle svg{width:16px;height:16px}
 body.dark .dark-toggle{border-color:rgba(255,255,255,.2);color:var(--or)}
@@ -80,7 +80,7 @@ body.dark .dark-toggle:hover{border-color:var(--or)}
 /* ===== Form fields ===== */
 label.fl{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris);margin:0 0 5px;font-weight:600}
 .req{color:var(--orAA)}
-.finp,.fsel,textarea{width:100%;border:1px solid var(--cf);border-radius:9px;padding:11px 13px;font:400 14px 'Plus Jakarta Sans';color:var(--encre);background:var(--blanc);outline:none;transition:border-color .2s,box-shadow .2s}
+.finp,.fsel,textarea{width:100%;border:1px solid var(--cfield);border-radius:9px;padding:11px 13px;font:400 14px 'Plus Jakarta Sans';color:var(--encre);background:var(--blanc);outline:none;transition:border-color .2s,box-shadow .2s}
 .finp:focus,textarea:focus,.fsel:focus{border-color:var(--or);box-shadow:0 0 0 3px var(--op)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
@@ -90,14 +90,14 @@ textarea{resize:vertical;min-height:84px;line-height:1.5}
 .fsel{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23B09438' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 13px center;padding-right:36px;cursor:pointer}
 
 /* ===== Segmented choice (domiciliation) ===== */
-.seg{display:inline-flex;border:1px solid var(--cf);border-radius:50px;overflow:hidden;background:var(--blanc)}
+.seg{display:inline-flex;border:1px solid var(--cfield);border-radius:50px;overflow:hidden;background:var(--blanc)}
 .seg button{background:none;border:none;padding:10px 22px;font:700 12px 'Plus Jakarta Sans';letter-spacing:.04em;color:var(--gris);cursor:pointer;transition:all .2s}
 .seg button.on{background:var(--vert);color:var(--ivoire)}
 
 /* ===== Entity radio cards ===== */
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 @media(max-width:560px){.cards{grid-template-columns:1fr}}
-.ec{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--cf);border-radius:12px;padding:14px 15px;cursor:pointer;background:var(--blanc);transition:all .2s}
+.ec{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--cfield);border-radius:12px;padding:14px 15px;cursor:pointer;background:var(--blanc);transition:all .2s}
 .ec:hover{border-color:var(--or)}
 .ec input{position:absolute;opacity:0;width:0;height:0}
 .ec .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--cf);flex-shrink:0;margin-top:2px;position:relative;transition:all .2s}
@@ -119,7 +119,7 @@ textarea{resize:vertical;min-height:84px;line-height:1.5}
 
 /* ===== Radio block (PPE) ===== */
 .rblock{display:flex;flex-direction:column;gap:9px}
-.ropt{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--cf);border-radius:11px;padding:13px 15px;cursor:pointer;transition:all .2s}
+.ropt{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--cfield);border-radius:11px;padding:13px 15px;cursor:pointer;transition:all .2s}
 .ropt:hover{border-color:var(--or)}
 .ropt input{position:absolute;opacity:0;width:0;height:0}
 .ropt .dot{width:19px;height:19px;border-radius:50%;border:2px solid var(--cf);flex-shrink:0;margin-top:1px;position:relative;transition:all .2s}
@@ -167,7 +167,7 @@ details .dbody li{margin-bottom:3px}
 body.dark .badge.recent{color:#e0a36a}
 .doc .dfile{font-size:11px;color:var(--gris);margin-top:4px;word-break:break-all}
 .up{flex-shrink:0}
-.up label{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cf);border-radius:50px;padding:8px 15px;font:700 11px 'Plus Jakarta Sans';letter-spacing:.04em;color:var(--gris);cursor:pointer;transition:all .2s;background:var(--blanc)}
+.up label{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cfield);border-radius:50px;padding:8px 15px;font:700 11px 'Plus Jakarta Sans';letter-spacing:.04em;color:var(--gris);cursor:pointer;transition:all .2s;background:var(--blanc)}
 .up label:hover{border-color:var(--or);color:var(--orAA)}
 .doc.filled .up label{color:var(--ok);border-color:var(--ok)}
 .up input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
@@ -227,7 +227,7 @@ body.dark .badge.recent{color:#e0a36a}
 .qhead{display:flex;gap:12px;align-items:flex-start}
 .qnum{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--vp);color:var(--vert);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
 .qtxt{font-size:13.5px;font-weight:600;line-height:1.4;flex:1}
-.ynseg{display:inline-flex;border:1px solid var(--cf);border-radius:50px;overflow:hidden;background:var(--creme);margin-top:11px}
+.ynseg{display:inline-flex;border:1px solid var(--cfield);border-radius:50px;overflow:hidden;background:var(--creme);margin-top:11px}
 .ynseg button{background:none;border:none;padding:8px 22px;font:700 12px 'Plus Jakarta Sans';color:var(--gris);cursor:pointer;transition:all .2s}
 .ynseg button.on[data-v=oui]{background:var(--vert);color:var(--ivoire)}
 .ynseg button.on[data-v=non]{background:var(--gris);color:var(--creme)}
@@ -481,6 +481,7 @@ body.dark .page-sub b{color:var(--ivoire)}
   </div>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
 /* ============================================================
    CONFIG BACKEND — à renseigner pour la mise en production
@@ -495,6 +496,17 @@ const CONFIG = {
 
 /* ===== View Transitions (core.js) ===== */
 function withVT(fn){ if(document.startViewTransition){ try{ document.startViewTransition(fn); }catch(e){ fn(); } } else { fn(); } }
+
+/* ===== Animations GSAP (optionnelles ; ignorées si reduced-motion ou GSAP absent) ===== */
+const REDUCE_MOTION = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function animatePanel(p){ if(REDUCE_MOTION||!window.gsap||!p) return; const els=p.querySelectorAll('.banner, .card, .nav'); if(els.length) gsap.from(els,{y:16,opacity:0,duration:.4,stagger:.06,ease:'power2.out',clearProps:'all'}); }
+function gsapIntro(){ if(REDUCE_MOTION||!window.gsap) return;
+  gsap.from('.top-bar',{y:-14,opacity:0,duration:.5,ease:'power2.out',clearProps:'all'});
+  gsap.from('.page-intro > *',{y:14,opacity:0,duration:.5,stagger:.08,delay:.05,ease:'power2.out',clearProps:'all'});
+  gsap.from('#stepper .step',{y:10,opacity:0,duration:.4,stagger:.06,delay:.18,ease:'power2.out',clearProps:'all'});
+  gsap.from('.bar',{scaleX:0,transformOrigin:'left center',duration:.5,delay:.32,ease:'power2.out',clearProps:'all'});
+  animatePanel(document.querySelector('.panel.on'));
+}
 
 /* ===== Thème (bascule jour/nuit avec picto soleil/lune) ===== */
 const ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
@@ -572,7 +584,7 @@ const I18N = {
   skip:{fr:'Aller au contenu',en:'Skip to content'},
   eyebrow:{fr:'Conformité réglementaire — LCB-FT',en:'Regulatory compliance — AML/CFT'},
   title:{fr:'Votre <b>dossier d\'entrée</b>',en:'Your <b>onboarding file</b>'},
-  subtitle:{fr:'La réglementation (LCB-FT) et votre contrat <b>nous obligent à recueillir</b> certaines informations et pièces pour finaliser votre installation. <b>Une fois votre dossier complet, c\'est réglé</b> — vous n\'aurez plus à y revenir. Vos données sont transmises de façon sécurisée à The Bureau.',en:'Regulations (AML/CFT) and your contract <b>require us to collect</b> certain information and documents to complete your move-in. <b>Once your file is complete, it\'s done</b> — no need to come back to it. Your data is securely transmitted to The Bureau.'},
+  subtitle:{fr:'La réglementation (LCB-FT) et votre contrat <b>nous obligent à recueillir</b> certaines informations et pièces pour finaliser votre installation.<br><br><b>Une fois votre dossier complet, c\'est réglé</b> — vous n\'aurez plus à y revenir. Vos données sont transmises de façon sécurisée à The Bureau.',en:'Regulations (AML/CFT) and your contract <b>require us to collect</b> certain information and documents to complete your move-in.<br><br><b>Once your file is complete, it\'s done</b> — no need to come back to it. Your data is securely transmitted to The Bureau.'},
   s1:{fr:'Votre structure',en:'Your entity'},s2:{fr:'Déclarations',en:'Declarations'},s3:{fr:'Pièces à fournir',en:'Documents'},s4:{fr:'Récapitulatif',en:'Summary'},
   sec_centre:{fr:'Centre de rattachement',en:'Your centre'},
   hint_centre:{fr:'Sélectionnez le centre The Bureau auprès duquel vous vous installez.',en:'Select the The Bureau centre where you are setting up.'},
@@ -1059,6 +1071,7 @@ function go(idx){
   });
   window.scrollTo({top:0,behavior:'smooth'});
   const h=document.querySelector('#'+ap[idx].panel+' .sec, #'+ap[idx].panel+' .bt'); if(h){ h.setAttribute('tabindex','-1'); h.focus(); }
+  setTimeout(()=>animatePanel(document.getElementById(ap[idx].panel)),0);
 }
 function next(){ go(state.idx+1); }
 function prev(){ go(state.idx-1); }
@@ -1141,7 +1154,7 @@ function buildPayload(){
 }
 
 /* ===== Init ===== */
-renderEntities(); renderDocs(); renderStepper(); applyLang(); setThemeIcon();
+renderEntities(); renderDocs(); renderStepper(); applyLang(); setThemeIcon(); gsapIntro();
 /* Mode jour par défaut (le bouton lune permet de basculer en sombre). */
 </script>
 </body>
