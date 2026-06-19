@@ -1462,8 +1462,10 @@ async function saveProgress(btn){
   try{
     if(!CONFIG.ENDPOINT){ toastSave_('Mode démo — rien envoyé'); }
     else{
+      // on téléverse tout ce qui a un fichier (y compris imports INPI : statuts, PV, RNE),
+      // SAUF les pièces déjà chargées depuis Archie (fromArchie) — elles y sont déjà.
       const ids=currentDocIds(), files=[];
-      for(const id of ids){ const f=state.files[id]; if(f&&f.blob&&!f.auto){ files.push({docId:id, name:fmtFileName(id,f.name), mimeType:f.blob.type||'application/pdf', dataB64:await readB64(f.blob)}); } }
+      for(const id of ids){ const f=state.files[id]; if(f&&f.blob&&!f.fromArchie){ files.push({docId:id, name:fmtFileName(id,f.name), mimeType:f.blob.type||'application/pdf', dataB64:await readB64(f.blob)}); } }
       const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
                siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
                email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), centre:val('centre'), dom:state.dom?1:0, files:files};
@@ -1566,7 +1568,7 @@ function loadClientFiles(u){
       if(docId && PERSON_DOCS.indexOf(docId)>-1) docId=null;   // pièces nominatives (CNI, justif. domicile) : titulaire ≠ RL possible -> le client la fournit
       if(docId && !state.files[docId] && f.b64){
         var bin=atob(f.b64), arr=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
-        state.files[docId]={name:f.name, size:arr.length, type:'application/pdf', blob:new Blob([arr],{type:'application/pdf'}), auto:true};
+        state.files[docId]={name:f.name, size:arr.length, type:'application/pdf', blob:new Blob([arr],{type:'application/pdf'}), auto:true, fromArchie:true};
       }
     });
     renderDocs();
