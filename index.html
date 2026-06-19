@@ -164,9 +164,14 @@ details .dbody li{margin-bottom:3px}
 .badge.req{background:var(--vp);color:var(--vert)}
 .badge.cond{background:var(--op);color:var(--orAA)}
 .badge.recent{background:rgba(192,120,48,.12);color:#9a5e22}
+.badge.auto{background:var(--op);color:var(--orAA)}
+.docbtn{border:1px solid var(--cfield);background:var(--blanc);border-radius:50px;padding:7px 13px;font:700 11px 'Plus Jakarta Sans';letter-spacing:.04em;color:var(--gris);cursor:pointer;transition:all .2s}
+.docbtn:hover{border-color:var(--or);color:var(--orAA)}
+.docbtn.rm:hover{border-color:var(--err);color:var(--err)}
+.up .auto-load{font-size:11px;color:var(--orAA);font-weight:600;white-space:nowrap}
 body.dark .badge.recent{color:#e0a36a}
 .doc .dfile{font-size:11px;color:var(--gris);margin-top:4px;word-break:break-all}
-.up{flex-shrink:0}
+.up{flex-shrink:0;display:flex;align-items:center;gap:7px}
 .up label{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cfield);border-radius:50px;padding:8px 15px;font:700 11px 'Plus Jakarta Sans';letter-spacing:.04em;color:var(--gris);cursor:pointer;transition:all .2s;background:var(--blanc)}
 .up label:hover{border-color:var(--or);color:var(--orAA)}
 .doc.filled .up label{color:var(--ok);border-color:var(--ok)}
@@ -549,6 +554,7 @@ const ENTITIES = {
 
 /* Catalogue de documents : id -> libellés + badges */
 const DOC = {
+  rne:        {fr:'Extrait RNE (récupéré automatiquement INPI)', en:'RNE extract (auto-fetched, INPI)', b:['auto']},
   cni:        {fr:'Pièce d\'identité du représentant légal en cours de validité', en:'Valid ID of the legal representative', b:['req']},
   cni_dir:    {fr:'Pièce d\'identité du dirigeant en cours de validité', en:'Valid ID of the company director', b:['req']},
   cni_fond:   {fr:'Pièce d\'identité du/des fondateur(s)', en:'Valid ID of the founder(s)', b:['req']},
@@ -662,6 +668,7 @@ const I18N = {
   footer:{fr:'The Bureau · Dossier d\'entrée — données chiffrées en transit',en:'The Bureau · Onboarding file — data encrypted in transit'},
   recent_badge:{fr:'< 3 mois',en:'< 3 months'},req_badge:{fr:'Requis',en:'Required'},cond_badge:{fr:'Selon cas',en:'If applicable'},
   upload:{fr:'Joindre',en:'Attach'},replace:{fr:'Remplacer',en:'Replace'},
+  auto_badge:{fr:'Récupéré INPI',en:'From INPI'},doc_view:{fr:'Voir',en:'View'},doc_remove:{fr:'Retirer',en:'Remove'},auto_loading:{fr:'Récupération auto…',en:'Auto-fetching…'},
   err_ident:{fr:'Merci de renseigner tous les champs obligatoires, dont un email valide.',en:'Please fill in all required fields, including a valid email.'},
   err_sanc:{fr:'Merci de cocher l\'attestation sanctions & gel des avoirs.',en:'Please tick the sanctions & asset-freeze declaration.'},
   err_rgpd:{fr:'Merci d\'accepter le traitement RGPD pour envoyer votre dossier.',en:'Please accept GDPR processing to submit your file.'},
@@ -710,12 +717,13 @@ function toggleLoi(){ state.loi1901=document.getElementById('loi1901').checked; 
 function currentDocIds(){
   let ids=[...REQS[state.entity][state.dom?'oui':'non']];
   if(state.etranger && !ids.includes('etranger')) ids.splice(ids.length-1,0,'etranger');
+  ids.unshift('rne'); // Extrait RNE, récupéré automatiquement, toujours en tête
   return ids;
 }
-function badge(b){ if(b==='req') return `<span class="badge req">${t('req_badge')}</span>`; if(b==='recent') return `<span class="badge recent">${t('recent_badge')}</span>`; if(b==='cond') return `<span class="badge cond">${t('cond_badge')}</span>`; return ''; }
+function badge(b){ if(b==='req') return `<span class="badge req">${t('req_badge')}</span>`; if(b==='recent') return `<span class="badge recent">${t('recent_badge')}</span>`; if(b==='cond') return `<span class="badge cond">${t('cond_badge')}</span>`; if(b==='auto') return `<span class="badge auto">${t('auto_badge')}</span>`; return ''; }
 
 /* Renommage normalisé des pièces : DENOMINATION_[PRENOMetNOM_]NOMDOCUMENT.ext */
-const DOC_FILE={cni:'PieceIdentite',cni_dir:'PieceIdentite',cni_fond:'PieceIdentite',kbis:'Kbis',rseirl:'ExtraitRSEIRL',rsac:'ExtraitRSAC',recepisse:'RecepisseDeclaration',recep_asso:'RecepisseCreation',jo:'JournalOfficiel',rib:'RIB',etranger:'ValiditeJuridiqueEtranger',jdom_rl:'JustificatifDomicile',jdom_fond:'JustificatifDomicile',lieux:'JustificatifLieuActivite',statuts:'Statuts',capital:'CompositionCapital',pv_nom:'PVNomination',pouvoirs:'PouvoirsMandataires'};
+const DOC_FILE={rne:'ExtraitRNE-INPI',cni:'PieceIdentite',cni_dir:'PieceIdentite',cni_fond:'PieceIdentite',kbis:'Kbis',rseirl:'ExtraitRSEIRL',rsac:'ExtraitRSAC',recepisse:'RecepisseDeclaration',recep_asso:'RecepisseCreation',jo:'JournalOfficiel',rib:'RIB',etranger:'ValiditeJuridiqueEtranger',jdom_rl:'JustificatifDomicile',jdom_fond:'JustificatifDomicile',lieux:'JustificatifLieuActivite',statuts:'Statuts',capital:'CompositionCapital',pv_nom:'PVNomination',pouvoirs:'PouvoirsMandataires'};
 const PERSON_DOCS=['cni','cni_dir','cni_fond','jdom_rl','jdom_fond'];
 function sanitizeName(s){ return (s||'').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]/g,'').toUpperCase(); }
 function fmtFileName(id,original){
@@ -728,18 +736,22 @@ function fmtFileName(id,original){
 function renderDocs(){
   const ids=currentDocIds(); const list=document.getElementById('docList');
   list.innerHTML=ids.map(id=>{
-    const d=DOC[id]; const f=state.files[id];
+    const d=DOC[id]; const f=state.files[id]; const loading=state.autoLoading&&state.autoLoading[id];
+    const actions = loading
+      ? `<span class="up"><span class="auto-load">${t('auto_loading')}</span></span>`
+      : `<span class="up">
+          ${f&&f.blob?`<button type="button" class="docbtn" onclick="viewDoc('${id}')">${t('doc_view')}</button>`:''}
+          ${f?`<button type="button" class="docbtn rm" onclick="removeDoc('${id}')">${t('doc_remove')}</button>`:''}
+          <label for="file_${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>${f?t('replace'):t('upload')}</label>
+          <input type="file" id="file_${id}" accept="image/*,.pdf,.doc,.docx" onchange="onFile('${id}',this)"></span>`;
     return `<div class="doc ${f?'filled':''}" id="doc_${id}">
       <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
       <span class="dinfo">
         <span class="dname">${d[state.lang]}</span>
-        <span class="dbadges">${(d.b||[]).map(badge).join('')}</span>
+        <span class="dbadges">${(d.b||[]).map(badge).join('')}${f&&f.auto?badge('auto'):''}</span>
         ${f?`<span class="dfile">📎 ${fmtFileName(id,f.name)}</span>`:''}
       </span>
-      <span class="up"><label for="file_${id}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-        ${f?t('replace'):t('upload')}</label>
-        <input type="file" id="file_${id}" accept="image/*,.pdf,.doc,.docx" onchange="onFile('${id}',this)"></span>
+      ${actions}
     </div>`;
   }).join('');
   const done=ids.filter(id=>state.files[id]).length;
@@ -747,6 +759,28 @@ function renderDocs(){
   document.getElementById('docTot').textContent='/'+ids.length;
 }
 function onFile(id,inp){ const f=inp.files[0]; if(f){ state.files[id]={name:f.name,size:f.size,type:f.type,blob:f}; } renderDocs(); }
+function removeDoc(id){ state.files[id]=null; renderDocs(); }
+function viewDoc(id){ const f=state.files[id]; if(!f||!f.blob) return; const u=URL.createObjectURL(f.blob); window.open(u,'_blank'); setTimeout(()=>URL.revokeObjectURL(u),60000); }
+/* Récupère un document officiel (rne/statuts/pv_nom) via le proxy backend et le place dans les pièces. */
+async function fetchAutoDoc(docId, apiDoc, siren){
+  if(!CONFIG.ENDPOINT || !siren || state.files[docId]) return; // ne pas écraser un fichier déjà présent
+  state.autoLoading=state.autoLoading||{}; state.autoLoading[docId]=true; renderDocs();
+  try{
+    const r=await fetch(CONFIG.ENDPOINT+'?siren='+encodeURIComponent(siren)+'&doc='+apiDoc);
+    const j=await r.json();
+    if(j&&j.ok&&j.b64){
+      const bytes=Uint8Array.from(atob(j.b64), c=>c.charCodeAt(0));
+      state.files[docId]={name:j.name||(docId+'.pdf'), size:bytes.length, type:'application/pdf', blob:new Blob([bytes],{type:'application/pdf'}), auto:true};
+    }
+  }catch(e){ /* silencieux */ }
+  state.autoLoading[docId]=false; renderDocs();
+}
+function autoFetchDocs(siren){
+  const ids=currentDocIds();
+  if(ids.includes('rne')) fetchAutoDoc('rne','rne',siren);
+  if(ids.includes('statuts')) fetchAutoDoc('statuts','statuts',siren);
+  if(ids.includes('pv_nom')) fetchAutoDoc('pv_nom','pv_nom',siren);
+}
 
 /* Bénéficiaires effectifs */
 function addBE(){ state.bes.push({prenom:'',nom:'',rue:'',cp:'',ville:'',pays:'',pct:'',tel:'',email:''}); renderBE(); }
@@ -1055,6 +1089,7 @@ function fillFromCompany(r){
   if(r.date_creation) state.lcb.c_datecrea=r.date_creation;
   inpiAutofill(r.siren); // capital social via le backend (RNE/INPI), si déployé
   checkBodacc(r.siren);  // Q7/Q8 (dirigeant/statuts) via BODACC
+  autoFetchDocs(r.siren); // Extrait RNE + statuts + PV récupérés et versés dans les pièces
 }
 /* Q5 — Le dirigeant gère-t-il plusieurs sociétés ? Recherche par dirigeant (API ouverte). */
 async function checkGerantMultiple(prenom, nom, curSiren){
