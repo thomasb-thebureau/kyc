@@ -221,6 +221,11 @@ body.dark .badge.recent{color:#e0a36a}
 .vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .tgl-row:focus-within .sw{box-shadow:0 0 0 3px var(--op)}
 .cb-opt.active{background:var(--vp)}
+/* Suggestions d'adresse (Base Adresse Nationale) — overlay positionné sur body */
+.ban-list{position:absolute;z-index:300;background:var(--blanc);border:1px solid var(--cf);border-radius:9px;box-shadow:0 10px 30px rgba(15,15,15,.16);max-height:230px;overflow-y:auto;font-size:13px}
+.ban-opt{padding:9px 13px;cursor:pointer;color:var(--encre);border-bottom:1px solid var(--cf)}
+.ban-opt:last-child{border-bottom:none}
+.ban-opt:hover{background:var(--vp)}
 /* Recherche entreprise (data.gouv) */
 .cs-wrap{position:relative;margin-bottom:16px;padding-bottom:4px;border-bottom:1px dashed var(--cf)}
 .cs-opt{display:block;padding:9px 13px;line-height:1.4}
@@ -564,7 +569,7 @@ const ENTITIES = {
 
 /* Catalogue de documents : id -> libellés + badges */
 const DOC = {
-  rne:        {fr:'Extrait RNE (récupéré automatiquement INPI)', en:'RNE extract (auto-fetched, INPI)', b:['auto']},
+  rne:        {fr:'Extrait RNE (récupéré automatiquement INPI)', en:'RNE extract (auto-fetched, INPI)', b:[]},
   cni:        {fr:'Pièce d\'identité du représentant légal en cours de validité', en:'Valid ID of the legal representative', b:['req']},
   cni_dir:    {fr:'Pièce d\'identité du dirigeant en cours de validité', en:'Valid ID of the company director', b:['req']},
   cni_fond:   {fr:'Pièce d\'identité du/des fondateur(s)', en:'Valid ID of the founder(s)', b:['req']},
@@ -791,6 +796,7 @@ function autoFetchDocs(siren){
   if(ids.includes('rne')) fetchAutoDoc('rne','rne',siren);
   if(ids.includes('statuts')) fetchAutoDoc('statuts','statuts',siren);
   if(ids.includes('pv_nom')) fetchAutoDoc('pv_nom','pv_nom',siren);
+  if(ids.includes('pouvoirs')) fetchAutoDoc('pouvoirs','pouvoirs',siren);
 }
 
 /* Bénéficiaires effectifs */
@@ -805,7 +811,7 @@ function renderBE(){
         <div class="fg"><label class="fl">${t('be_nom')}</label><input class="finp" aria-label="${t('be_nom')}" value="${b.nom||''}" oninput="state.bes[${i}].nom=this.value"></div>
       </div>
       <div class="fg"><label class="fl">${t('be_dom')}</label>
-        <input class="finp" data-gplaces="be:${i}" autocomplete="off" aria-label="${t('be_dom')} — ${L(LCBT.addr_rue)}" placeholder="${L(LCBT.addr_rue)}" value="${b.rue||''}" oninput="state.bes[${i}].rue=this.value">
+        <input class="finp" autocomplete="off" aria-label="${t('be_dom')} — ${L(LCBT.addr_rue)}" placeholder="${L(LCBT.addr_rue)}" value="${b.rue||''}" oninput="state.bes[${i}].rue=this.value;banInput(this,'be:${i}')" onblur="banBlur()">
         <div class="row3" style="margin-top:10px">
           <input class="finp" aria-label="${t('be_dom')} — ${L(LCBT.addr_cp)}" placeholder="${L(LCBT.addr_cp)}" value="${b.cp||''}" oninput="state.bes[${i}].cp=this.value" inputmode="numeric">
           <input class="finp" aria-label="${t('be_dom')} — ${L(LCBT.addr_ville)}" placeholder="${L(LCBT.addr_ville)}" value="${b.ville||''}" oninput="state.bes[${i}].ville=this.value">
@@ -896,7 +902,7 @@ const LCBT={
   paysList:{fr:'Voir la liste des pays (annexe 3.2)',en:'View the country list (annex 3.2)'},
   paysPh:{fr:'Sélectionnez un pays…',en:'Select a country…'},autre:{fr:'Autre',en:'Other'},selectPh:{fr:'Sélectionnez…',en:'Select…'},
   addr_rue:{fr:'N° et rue',en:'Street address'},addr_cp:{fr:'Code postal',en:'Postal code'},addr_ville:{fr:'Ville',en:'City'},addr_pays:{fr:'Pays',en:'Country'},
-  addr_g:{fr:'Commencez à taper puis sélectionnez une suggestion — l\'adresse se remplit automatiquement.',en:'Start typing and pick a suggestion — the address fills in automatically.'},
+  addr_g:{fr:'Tapez l\'adresse puis choisissez une suggestion — code postal, ville et pays se remplissent seuls.',en:'Type the address and pick a suggestion — postcode, city and country auto-fill.'},
   countryPh:{fr:'Tapez un pays (ex. « Fra » → France)…',en:'Type a country (e.g. “Fra” → France)…'},
   derivedFromDate:{fr:'déduit automatiquement de la date de création',en:'auto-derived from the incorporation date'},
   needDate:{fr:'Renseignez d\'abord la date de création ci-dessus.',en:'Please fill the incorporation date above first.'},
@@ -913,13 +919,13 @@ function fieldHTML(f){
   if(f.k==='address'){
     const g=k=>state.lcb[f.id+'_'+k]||'';
     return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label>
-      <input class="finp" id="${f.id}_rue" data-gplaces="${f.id}" autocomplete="off" aria-label="${L(f.label)} — ${L(LCBT.addr_rue)}" placeholder="${L(LCBT.addr_rue)}" value="${g('rue')}" oninput="setLcb('${f.id}_rue',this.value)">
+      <input class="finp" id="${f.id}_rue" autocomplete="off" aria-label="${L(f.label)} — ${L(LCBT.addr_rue)}" placeholder="${L(LCBT.addr_rue)}" value="${g('rue')}" oninput="setLcb('${f.id}_rue',this.value);banInput(this,'${f.id}')" onblur="banBlur()">
       <div class="row3" style="margin-top:10px">
         <input class="finp" aria-label="${L(f.label)} — ${L(LCBT.addr_cp)}" placeholder="${L(LCBT.addr_cp)}" value="${g('cp')}" oninput="setLcb('${f.id}_cp',this.value)" inputmode="numeric">
         <input class="finp" aria-label="${L(f.label)} — ${L(LCBT.addr_ville)}" placeholder="${L(LCBT.addr_ville)}" value="${g('ville')}" oninput="setLcb('${f.id}_ville',this.value)">
         <input class="finp" aria-label="${L(f.label)} — ${L(LCBT.addr_pays)}" placeholder="${L(LCBT.addr_pays)}" value="${g('pays')}" oninput="setLcb('${f.id}_pays',this.value)">
       </div>
-      ${CONFIG.GOOGLE_PLACES_KEY?`<div class="ahint">📍 ${L(LCBT.addr_g)}</div>`:''}</div>`;
+      <div class="ahint">🔎 ${L(LCBT.addr_g)}</div></div>`;
   }
   if(f.k==='select'){ const opts=f.optionsKeys?f.optionsKeys.map(k=>({v:I18N[k].fr,t:t(k)})):(f.options||[]).map(o=>({v:o,t:o})); return `<div class="fg"><label class="fl">${L(f.label)}${f.opt?'':' <span class="req">*</span>'}</label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.selectPh)}</option>${opts.map(o=>`<option value="${o.v.replace(/"/g,'&quot;')}" ${v===o.v?'selected':''}>${o.t}</option>`).join('')}</select></div>`; }
   if(f.id==='c_rcs') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${fmtSiret(v)}" oninput="this.value=fmtSiret(this.value);setLcb('c_rcs',this.value)"></div>`;
@@ -1193,23 +1199,33 @@ function attachPlaces(){
     ac.addListener('place_changed',()=>fillFromPlace(inp.getAttribute('data-gplaces'), ac.getPlace()));
   });
 }
-function fillFromPlace(target, place){
-  if(!place || !place.address_components) return;
-  let num='',rue='',cp='',ville='',pays='';
-  place.address_components.forEach(c=>{
-    if(c.types.includes('street_number')) num=c.long_name;
-    if(c.types.includes('route')) rue=c.long_name;
-    if(c.types.includes('postal_code')) cp=c.long_name;
-    if(c.types.includes('locality')||c.types.includes('postal_town')) ville=c.long_name;
-    if(c.types.includes('country')) pays=c.long_name;
-  });
-  const street=(num?num+' ':'')+rue;
-  if(target.indexOf('be:')===0){ // bénéficiaire effectif
-    const b=state.bes[parseInt(target.slice(3),10)]; if(b){ b.rue=street; b.cp=cp; b.ville=ville; b.pays=pays; } renderBE();
-  } else { // champ LCB
-    state.lcb[target+'_rue']=street; state.lcb[target+'_cp']=cp; state.lcb[target+'_ville']=ville; state.lcb[target+'_pays']=pays; renderLCB();
-  }
+/* Écrit une adresse (rue/cp/ville/pays) dans la bonne cible : 'be:N' (bénéficiaire) ou un champ LCB. */
+function setAddress(target, a){
+  const up=s=>String(s||'').toUpperCase();
+  if(target.indexOf('be:')===0){ const b=state.bes[parseInt(target.slice(3),10)]; if(b){ b.rue=up(a.rue); b.cp=a.cp||''; b.ville=up(a.ville); b.pays=up(a.pays); } renderBE(); }
+  else { state.lcb[target+'_rue']=up(a.rue); state.lcb[target+'_cp']=a.cp||''; state.lcb[target+'_ville']=up(a.ville); state.lcb[target+'_pays']=up(a.pays); renderLCB(); }
 }
+
+/* ===== Autocomplétion d'adresse via la Base Adresse Nationale (api-adresse.data.gouv.fr — gratuite, CORS) ===== */
+let _banTimer=null, _banResults=[], _banTarget=null, _banInput=null;
+function banBox(){ let b=document.getElementById('adrAC'); if(!b){ b=document.createElement('div'); b.id='adrAC'; b.className='ban-list'; b.style.display='none'; document.body.appendChild(b); } return b; }
+function banInput(inp, target){ _banInput=inp; _banTarget=target; clearTimeout(_banTimer); _banTimer=setTimeout(banSearch,280); }
+async function banSearch(){
+  const inp=_banInput, box=banBox(); if(!inp) return;
+  const q=(inp.value||'').trim();
+  if(q.length<4){ box.style.display='none'; return; }
+  try{
+    const r=await fetch('https://api-adresse.data.gouv.fr/search/?limit=5&autocomplete=1&q='+encodeURIComponent(q));
+    const j=await r.json(); _banResults=j.features||[];
+    if(!_banResults.length){ box.style.display='none'; return; }
+    box.innerHTML=_banResults.map((f,i)=>`<div class="ban-opt" onmousedown="banPick(${i})">${esc(f.properties.label)}</div>`).join('');
+    const rect=inp.getBoundingClientRect();
+    box.style.left=(rect.left+window.scrollX)+'px'; box.style.top=(rect.bottom+window.scrollY+4)+'px'; box.style.width=rect.width+'px';
+    box.style.display='block';
+  }catch(e){ box.style.display='none'; }
+}
+function banPick(i){ const f=_banResults[i]; if(!f) return; const p=f.properties; setAddress(_banTarget,{rue:p.name||'',cp:p.postcode||'',ville:p.city||'',pays:'France'}); banBox().style.display='none'; }
+function banBlur(){ setTimeout(()=>{ const b=document.getElementById('adrAC'); if(b) b.style.display='none'; },180); }
 
 /* Renvoie la liste des ids requis selon les réponses visibles */
 function lcbRequired(){
