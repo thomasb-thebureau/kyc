@@ -243,7 +243,7 @@ body.dark .badge.recent{color:#e0a36a}
 .pays-grid span{display:flex;align-items:center;gap:7px;break-inside:avoid;padding:2px 0}
 .flag{width:18px;height:auto;border-radius:1px;border:1px solid rgba(15,15,15,.08);vertical-align:middle;flex-shrink:0}
 body.dark .flag{border-color:rgba(255,255,255,.12)}
-.centre-adr{margin-top:11px;font-size:12.5px;color:var(--vert);font-weight:600;background:var(--vp);border-radius:8px;padding:9px 12px}
+#centre.chosen{color:var(--vert);font-weight:600;border-color:var(--vert);background-color:var(--vp)}
 .page-sub b{color:var(--encre);font-weight:600}
 body.dark .page-sub b{color:var(--ivoire)}
 .ahint{font-size:11px;color:var(--orAA);margin-top:8px;background:var(--op);border-radius:7px;padding:7px 10px}
@@ -293,7 +293,7 @@ body.dark .page-sub b{color:var(--ivoire)}
     <div class="card">
       <h2 class="sec" data-i="sec_centre">Centre de rattachement</h2>
       <p class="hint" data-i="hint_centre">Sélectionnez le centre The Bureau auprès duquel vous vous installez.</p>
-      <select class="fsel" id="centre"><option value="" data-i="centre_ph">Sélectionnez votre centre…</option></select>
+      <select class="fsel" id="centre" onchange="centreStyle()"><option value="" data-i="centre_ph">Sélectionnez votre centre…</option></select>
     </div>
 
     <div class="card">
@@ -661,8 +661,10 @@ function updateAsso(){ const opt=state.entity==='asso'; ['siret','tva'].forEach(
 function renderCentres(){
   const sel=document.getElementById('centre'); if(!sel) return;
   const cur=sel.value;
-  sel.innerHTML=`<option value="">${t('centre_ph')}</option>`+CENTRES.map(c=>`<option value="${c.id}" ${cur===c.id?'selected':''}>${c.nom} — ${c.adr}</option>`).join('');
+  sel.innerHTML=`<option value="">${t('centre_ph')}</option>`+CENTRES.map(c=>`<option value="${c.id}" ${cur===c.id?'selected':''}>📍 ${c.nom} — ${c.adr}</option>`).join('');
+  centreStyle();
 }
+function centreStyle(){ const s=document.getElementById('centre'); if(s) s.classList.toggle('chosen', !!s.value); }
 function setDom(v){ state.dom=v; document.getElementById('domOui').classList.toggle('on',v); document.getElementById('domNon').classList.toggle('on',!v); renderDocs(); renderStepper(); }
 function toggleEtr(){ state.etranger=document.getElementById('etranger').checked; document.getElementById('etrSw').classList.toggle('on',state.etranger); renderDocs(); }
 function toggleLoi(){ state.loi1901=document.getElementById('loi1901').checked; document.getElementById('loiSw').classList.toggle('on',state.loi1901); updateRnaRow(); renderDocs(); }
