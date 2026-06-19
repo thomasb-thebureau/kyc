@@ -208,6 +208,8 @@ body.dark .badge.recent{color:#e0a36a}
 .btn-send:hover{background:#9c8230}
 .btn-send:disabled{background:var(--cf);color:var(--gc);box-shadow:none;cursor:not-allowed}
 .btn-next svg,.btn-send svg{width:15px;height:15px}
+.save-fab{position:fixed;bottom:18px;left:18px;z-index:50;background:var(--vert);color:var(--ivoire);border:none;border-radius:50px;padding:11px 18px;font:700 12px 'Plus Jakarta Sans';cursor:pointer;box-shadow:0 8px 24px rgba(30,64,53,.3);display:inline-flex;align-items:center;gap:7px}
+.save-fab:hover{background:#163026}
 
 /* ===== Success ===== */
 .success{text-align:center;padding:40px 20px}
@@ -523,6 +525,7 @@ body.dark .page-sub b{color:var(--ivoire)}
   </div>
 </main>
 
+<button class="save-fab" onclick="saveProgress(this)" title="Envoie les infos et pièces déjà saisies vers The Bureau">💾 <span data-i="save_btn">Enregistrer</span></button>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
 /* ============================================================
@@ -1321,6 +1324,7 @@ function go(idx){
   const ap=activePanels();
   if(idx<0||idx>=ap.length) return;
   if(idx>state.idx && !validate(ap[state.idx].key)) return;
+  if(state.idx===0 && idx>0) createAccount();   // « Votre structure » quittée -> crée le compte Archie + dossier (mode normal ; rien en /maj car déjà créé)
   state.idx=idx;
   withVT(()=>{
     PANELS.forEach(p=>{ const el=document.getElementById(p.panel); if(el) el.classList.toggle('on',p.panel===ap[idx].panel); });
@@ -1400,6 +1404,35 @@ async function submitDossier(){
     window.scrollTo({top:0,behavior:'smooth'});
   }catch(e){ btn.disabled=false; const el=document.getElementById('err3'); el.textContent='⚠ '+(state.lang==='en'?'Sending failed, please retry.':'Échec de l\'envoi, merci de réessayer.'); el.classList.add('on'); }
 }
+/* === Création de compte (Archie + Drive) + enregistrement progressif — modes /maj et normal === */
+function createAccount(){
+  if(!CONFIG.ENDPOINT || state.archieUuid || state.creating || !val('raison')) return;
+  state.creating=true;
+  const b={action:'create', raison:val('raison'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''),
+           email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), tel:val('tel'),
+           centre:val('centre'), dom:state.dom?1:0};
+  fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
+    .then(r=>r.json()).then(j=>{ if(j&&j.uuid) state.archieUuid=j.uuid; state.creating=false; })
+    .catch(()=>{ state.creating=false; });
+}
+async function saveProgress(btn){
+  if(btn){ btn.disabled=true; btn._t=btn.textContent; btn.textContent='…'; }
+  try{
+    if(!CONFIG.ENDPOINT){ toastSave_('Mode démo — rien envoyé'); }
+    else{
+      const ids=currentDocIds(), files=[];
+      for(const id of ids){ const f=state.files[id]; if(f&&f.blob&&!f.auto){ files.push({docId:id, name:fmtFileName(id,f.name), mimeType:f.blob.type||'application/pdf', dataB64:await readB64(f.blob)}); } }
+      const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
+               siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
+               email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), centre:val('centre'), dom:state.dom?1:0, files:files};
+      const r=await fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});
+      const j=await r.json(); if(j&&j.uuid) state.archieUuid=j.uuid;
+      toastSave_(state.lang==='en'?'✓ Saved':'✓ Enregistré');
+    }
+  }catch(e){ toastSave_(state.lang==='en'?'⚠ Save failed':'⚠ Échec, réessayez'); }
+  if(btn){ btn.disabled=false; btn.textContent=btn._t||'Enregistrer'; }
+}
+function toastSave_(msg){ let d=document.getElementById('saveToast'); if(!d){ d=document.createElement('div'); d.id='saveToast'; d.style.cssText='position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:var(--vert);color:#fff;padding:10px 18px;border-radius:30px;z-index:999;font-weight:600;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.25)'; document.body.appendChild(d);} d.textContent=msg; d.style.display='block'; clearTimeout(d._h); d._h=setTimeout(()=>{d.style.display='none';},2800); }
 function buildPayload(){
   const ids=currentDocIds();
   return {
@@ -1442,6 +1475,7 @@ function prefillFromURL(){
         centre=p.get('centre')||'', contact=p.get('contact')||'',
         dom=p.get('dom')||'', u=p.get('u')||'';
     if(!siren && !raison && !email) return;   // lien standard -> aucun pré-remplissage
+    if(u) state.archieUuid=u;                 // mode /maj : le compte Archie existe déjà
     var setv=function(id,v){ var el=document.getElementById(id); if(el && v) el.value=v; };
     if(centre){ var cs=document.getElementById('centre'); if(cs){ cs.value=centre; centreStyle(); } }
     if(dom==='1'||dom==='oui'||dom==='Oui') setDom(true); else if(dom==='0'||dom==='non'||dom==='Non') setDom(false);
