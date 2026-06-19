@@ -174,6 +174,11 @@ details .dbody li{margin-bottom:3px}
 .up .auto-load{font-size:11px;color:var(--orAA);font-weight:600;white-space:nowrap}
 body.dark .badge.recent{color:#e0a36a}
 .doc .dfile{font-size:11px;color:var(--gris);margin-top:4px;word-break:break-all}
+.doc.docerr{border-color:var(--err);box-shadow:0 0 0 1px var(--err);background:rgba(179,38,30,.04)}
+.doc.docerr .tick{background:var(--err);border-color:var(--err)}
+.doc .ddate{display:block;margin-top:6px;font-size:12px;color:var(--gris)}
+.doc .ddate input{font:inherit;padding:3px 6px;border:1px solid var(--cfield);border-radius:7px;margin-left:6px}
+.doc .ddate-err{display:block;color:var(--err);font-weight:600;font-size:11.5px;margin-top:3px}
 .up{flex-shrink:0;display:flex;align-items:center;gap:7px}
 .up label{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cfield);border-radius:50px;padding:8px 15px;font:700 11px 'Plus Jakarta Sans';letter-spacing:.04em;color:var(--gris);cursor:pointer;transition:all .2s;background:var(--blanc)}
 .up label:hover{border-color:var(--or);color:var(--orAA)}
@@ -746,13 +751,17 @@ function fmtFileName(id,original){
   const ext=(original&&original.indexOf('.')>=0)?original.slice(original.lastIndexOf('.')):'';
   const parts=[sanitizeName(val('raison'))||'DOSSIER'];
   if(PERSON_DOCS.includes(id)){ const p=sanitizeName(val('rlprenom'))+'-'+sanitizeName(val('rlnom')); if(p!=='-') parts.push(p); }
-  parts.push(DOC_FILE[id]||'Document');
+  let nom=DOC_FILE[id]||'Document';
+  const dt=state.docDates&&state.docDates[id];
+  if(dt && DOC[id] && (DOC[id].b||[]).includes('recent')){ const m=dt.match(/(\d{4})-(\d{2})-(\d{2})/); if(m) nom+='-du-'+m[3]+'-'+m[2]+'-'+m[1]; }
+  parts.push(nom);
   return parts.join('_')+ext;
 }
 function renderDocs(){
   const ids=currentDocIds(); const list=document.getElementById('docList');
   list.innerHTML=ids.map(id=>{
     const d=DOC[id]; const f=state.files[id]; const loading=state.autoLoading&&state.autoLoading[id];
+    const recent=(d.b||[]).includes('recent'), old=state.docOld&&state.docOld[id];
     const actions = loading
       ? `<span class="up"><span class="auto-load">${t('auto_loading')}</span></span>`
       : `<span class="up">
@@ -760,22 +769,31 @@ function renderDocs(){
           ${f?`<button type="button" class="docbtn rm" onclick="removeDoc('${id}')">${t('doc_remove')}</button>`:''}
           <label for="file_${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>${f?t('replace'):t('upload')}</label>
           <input type="file" id="file_${id}" accept="image/*,.pdf,.doc,.docx" onchange="onFile('${id}',this)"></span>`;
-    return `<div class="doc ${f?'filled':''}" id="doc_${id}">
+    return `<div class="doc ${f?'filled':''} ${old?'docerr':''}" id="doc_${id}">
       <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
       <span class="dinfo">
         <span class="dname">${d[state.lang]}</span>
         <span class="dbadges">${(d.b||[]).map(badge).join('')}${f&&f.auto?badge('auto'):''}</span>
         ${f?`<span class="dfile">📎 ${fmtFileName(id,f.name)}</span>`:''}
+        ${f&&recent?`<span class="ddate">${state.lang==='en'?'Document date:':'Date du document :'}<input type="date" value="${(state.docDates&&state.docDates[id])||''}" onchange="setDocDate('${id}',this.value)">${old?`<span class="ddate-err">⚠ ${state.lang==='en'?'Older than 3 months — please replace':'Pièce de plus de 3 mois — refusée, à remplacer'}</span>`:''}</span>`:''}
       </span>
       ${actions}
     </div>`;
   }).join('');
-  const done=ids.filter(id=>state.files[id]).length;
+  const done=ids.filter(id=>state.files[id] && !(state.docOld&&state.docOld[id])).length;
   document.getElementById('docDone').textContent=done;
   document.getElementById('docTot').textContent='/'+ids.length;
 }
 function onFile(id,inp){ const f=inp.files[0]; if(f){ state.files[id]={name:f.name,size:f.size,type:f.type,blob:f}; } renderDocs(); }
-function removeDoc(id){ state.files[id]=null; renderDocs(); }
+function removeDoc(id){ state.files[id]=null; if(state.docDates) state.docDates[id]=''; if(state.docOld) state.docOld[id]=false; renderDocs(); }
+/* Date d'une pièce « < 3 mois » (Kbis, justif. domicile…). Refuse si > 3 mois (bordure rouge). */
+function setDocDate(id,v){
+  state.docDates=state.docDates||{}; state.docOld=state.docOld||{};
+  state.docDates[id]=v;
+  if(v){ const d=new Date(v), lim=new Date(); lim.setMonth(lim.getMonth()-3); state.docOld[id]=(d<lim); }
+  else state.docOld[id]=false;
+  renderDocs();
+}
 function viewDoc(id){ const f=state.files[id]; if(!f||!f.blob) return; const u=URL.createObjectURL(f.blob); window.open(u,'_blank'); setTimeout(()=>URL.revokeObjectURL(u),60000); }
 /* Récupère un document officiel (rne/statuts/pv_nom) via le proxy backend et le place dans les pièces. */
 async function fetchAutoDoc(docId, apiDoc, siren){
@@ -1287,7 +1305,7 @@ function stepComplete(key){
   if(key==='structure'){ const sir=state.entity==='asso'?true:(val('siret')&&val('tva')); return !!(val('centre')&&val('raison')&&val('forme')&&val('siren')&&sir&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')); }
   if(key==='decl'){ return document.getElementById('sanction').checked; }
   if(key==='lcb'){ return lcbRequired().every(id=>state.lcb[id]&&String(state.lcb[id]).trim()); }
-  if(key==='docs'){ const ids=currentDocIds(); return ids.length>0 && ids.every(id=>state.files[id]); }
+  if(key==='docs'){ const ids=currentDocIds(); return ids.length>0 && ids.every(id=>state.files[id] && !(state.docOld&&state.docOld[id])); }
   if(key==='recap'){ return document.getElementById('rgpd').checked; }
   return false;
 }
