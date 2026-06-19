@@ -324,6 +324,16 @@ body.dark .page-sub b{color:var(--ivoire)}
     </div>
 
     <div class="card">
+      <h2 class="sec" data-i="sec_search">Trouvez votre entreprise</h2>
+      <div class="fg cs-wrap" style="margin:0;padding:0;border:none">
+        <label class="fl" for="coSearch" data-i="f_cosearch">Rechercher mon entreprise (nom, SIREN ou SIRET)</label>
+        <input class="finp" id="coSearch" autocomplete="off" placeholder="Ex. « Acme » ou 552100554" aria-label="Rechercher mon entreprise" role="combobox" aria-expanded="false" aria-controls="coList" oninput="coSearchDebounced()" onblur="coHide()">
+        <div class="cb-list" id="coList" role="listbox" aria-label="Résultats" style="display:none"></div>
+        <p class="hint" id="coHint" data-i="cosearch_hint" style="margin-top:7px">Pré-remplit automatiquement les champs ci-dessous · source : Annuaire des Entreprises (data.gouv).</p>
+      </div>
+    </div>
+
+    <div class="card">
       <h2 class="sec" data-i="sec_type">Type de structure</h2>
       <div class="cards" id="entityCards" role="radiogroup" aria-label="Type de structure"></div>
       <label class="tgl-row" style="margin-top:14px" id="etrRow">
@@ -340,12 +350,6 @@ body.dark .page-sub b{color:var(--ivoire)}
 
     <div class="card">
       <h2 class="sec" data-i="sec_ident">Identité de la structure</h2>
-      <div class="fg cs-wrap">
-        <label class="fl" for="coSearch" data-i="f_cosearch">Rechercher mon entreprise (nom, SIREN ou SIRET)</label>
-        <input class="finp" id="coSearch" autocomplete="off" placeholder="Ex. « Acme » ou 552100554" aria-label="Rechercher mon entreprise" role="combobox" aria-expanded="false" aria-controls="coList" oninput="coSearchDebounced()" onblur="coHide()">
-        <div class="cb-list" id="coList" role="listbox" aria-label="Résultats" style="display:none"></div>
-        <p class="hint" id="coHint" data-i="cosearch_hint" style="margin-top:7px">Pré-remplit automatiquement les champs ci-dessous · source : Annuaire des Entreprises (data.gouv).</p>
-      </div>
       <div class="row2">
         <div class="fg"><label class="fl" for="raison" data-i="f_raison">Dénomination sociale <span class="req">*</span></label><input class="finp" id="raison" autocomplete="organization"></div>
         <div class="fg"><label class="fl" for="forme" data-i="f_forme">Forme juridique <span class="req">*</span></label>
@@ -621,6 +625,7 @@ const I18N = {
   etr1:{fr:'Siège social à l\'étranger',en:'Head office abroad'},etr2:{fr:' · ajoute un justificatif de validité juridique',en:' · adds a legal-validity document'},
   loi1:{fr:'Association loi 1901',en:'Law-1901 association'},loi2:{fr:' · ajoute le n° RNA',en:' · adds the RNA number'},
   sec_ident:{fr:'Identité de la structure',en:'Entity identity'},
+  sec_search:{fr:'Trouvez votre entreprise',en:'Find your company'},
   f_cosearch:{fr:'Rechercher mon entreprise (nom, SIREN ou SIRET)',en:'Find my company (name, SIREN or SIRET)'},
   cosearch_hint:{fr:'Pré-remplit automatiquement les champs ci-dessous · source : Annuaire des Entreprises (data.gouv).',en:'Auto-fills the fields below · source: French company directory (data.gouv).'},
   cosearch_empty:{fr:'Aucun résultat',en:'No result'},
@@ -1039,6 +1044,13 @@ function esc(s){ return String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','
 function coHide(){ setTimeout(()=>{ const b=document.getElementById('coList'); if(b) b.style.display='none'; const i=document.getElementById('coSearch'); if(i) i.setAttribute('aria-expanded','false'); },180); }
 function coPick(i){ const r=_coResults[i]; if(r) fillFromCompany(r); const b=document.getElementById('coList'); if(b) b.style.display='none'; }
 
+/* Type de structure déduit de l'API (société / EIRL / agent / asso) */
+function mapEntity(r){
+  const c=r.complements||{}, nj=String(r.nature_juridique||'');
+  if(c.est_association || nj==='9300' || nj==='5195' || nj.charAt(0)==='9') return 'asso';
+  if(c.est_entrepreneur_individuel || nj==='1000') return 'eirl';
+  return 'societe';
+}
 /* Catégorie juridique INSEE -> forme du sélecteur (best-effort) */
 function mapForme(code, comp){
   if(comp){ if(comp.est_association) return 'Association'; if(comp.est_entrepreneur_individuel) return 'Auto-entrepreneur / EI'; }
@@ -1075,10 +1087,11 @@ function fillFromCompany(r){
   const di=document.getElementById('dirInfo');
   if(di){ const list=dirs.map(d=>d.type_dirigeant==='personne morale' ? esc(d.denomination||'')+(d.qualite?' ('+esc(d.qualite)+')':'') : esc([d.prenoms,d.nom].filter(Boolean).join(' '))+(d.qualite?' ('+esc(d.qualite)+')':'')).filter(Boolean);
     if(list.length){ di.innerHTML='<b>'+t('dir_label')+' :</b> '+list.join(' · '); di.style.display='block'; } else di.style.display='none'; }
-  // Type de structure + RNA si association
-  if(comp.est_association){ state.entity='asso'; renderEntities(); document.getElementById('loiRow').style.display='flex'; if(comp.identifiant_association){ state.loi1901=true; const li=document.getElementById('loi1901'); if(li) li.checked=true; document.getElementById('loiSw').classList.add('on'); } }
+  // Type de structure déduit automatiquement de l'API
+  state.entity=mapEntity(r); renderEntities();
+  document.getElementById('loiRow').style.display=(state.entity==='asso')?'flex':'none';
+  if(state.entity==='asso' && comp.identifiant_association){ state.loi1901=true; const li=document.getElementById('loi1901'); if(li) li.checked=true; document.getElementById('loiSw').classList.add('on'); setv('rna', comp.identifiant_association); }
   updateRnaRow(); updateAsso(); renderDocs();
-  if(comp.est_association && comp.identifiant_association) setv('rna', comp.identifiant_association);
   // Pré-remplissage de la fiche LCB-FT (siège, RCS, date de création)
   const rue=[s.numero_voie,(s.indice_repetition||''),s.type_voie,s.libelle_voie].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
   if(rue) state.lcb.c_siege_rue=rue;
