@@ -293,8 +293,7 @@ body.dark .page-sub b{color:var(--ivoire)}
     <div class="card">
       <h2 class="sec" data-i="sec_centre">Centre de rattachement</h2>
       <p class="hint" data-i="hint_centre">Sélectionnez le centre The Bureau auprès duquel vous vous installez.</p>
-      <select class="fsel" id="centre" onchange="updateCentre()"><option value="" data-i="centre_ph">Sélectionnez votre centre…</option></select>
-      <div class="centre-adr" id="centreAdr" style="display:none"></div>
+      <select class="fsel" id="centre"><option value="" data-i="centre_ph">Sélectionnez votre centre…</option></select>
     </div>
 
     <div class="card">
@@ -503,10 +502,10 @@ function toggleTheme(){ withVT(()=>{ document.body.classList.toggle('dark'); set
    MODÈLE — pièces requises (issu de l'Annexe 2)
 ============================================================ */
 const CENTRES = [
-  {id:'I',   nom:'The Bureau I — Cours Albert 1er', adr:'28, Cours Albert 1er, 75008 Paris'},
-  {id:'II',  nom:'The Bureau II — Champs-Élysées',  adr:'16, Cours Albert 1er, 75008 Paris'},
-  {id:'III', nom:'The Bureau III — Opéra',          adr:'25, Rue du 4 Septembre, 75002 Paris'},
-  {id:'IV',  nom:'The Bureau IV — Bourse',          adr:'42, Rue Notre-Dame des Victoires, 75002 Paris'}
+  {id:'I',   nom:'The Bureau 1', adr:'28, Cours Albert 1er, 75008 Paris'},
+  {id:'II',  nom:'The Bureau 2', adr:'16, Cours Albert 1er, 75008 Paris'},
+  {id:'III', nom:'The Bureau 3', adr:'25, Rue du 4 Septembre, 75002 Paris'},
+  {id:'IV',  nom:'The Bureau 4', adr:'42, Rue Notre-Dame des Victoires, 75002 Paris'}
 ];
 const ENTITIES = {
   societe:  {fr:'Société (civile ou commerciale)', en:'Company (civil or commercial)', dfr:'SAS, SARL, SCI, SA…', den:'SAS, SARL, SCI, SA…'},
@@ -662,13 +661,7 @@ function updateAsso(){ const opt=state.entity==='asso'; ['siret','tva'].forEach(
 function renderCentres(){
   const sel=document.getElementById('centre'); if(!sel) return;
   const cur=sel.value;
-  sel.innerHTML=`<option value="">${t('centre_ph')}</option>`+CENTRES.map(c=>`<option value="${c.id}" ${cur===c.id?'selected':''}>${c.nom}</option>`).join('');
-  updateCentre();
-}
-function updateCentre(){
-  const sel=document.getElementById('centre'); const box=document.getElementById('centreAdr');
-  const c=CENTRES.find(x=>x.id===sel.value);
-  if(c){ box.textContent='📍 '+c.adr; box.style.display='block'; } else box.style.display='none';
+  sel.innerHTML=`<option value="">${t('centre_ph')}</option>`+CENTRES.map(c=>`<option value="${c.id}" ${cur===c.id?'selected':''}>${c.nom} — ${c.adr}</option>`).join('');
 }
 function setDom(v){ state.dom=v; document.getElementById('domOui').classList.toggle('on',v); document.getElementById('domNon').classList.toggle('on',!v); renderDocs(); renderStepper(); }
 function toggleEtr(){ state.etranger=document.getElementById('etranger').checked; document.getElementById('etrSw').classList.toggle('on',state.etranger); renderDocs(); }
