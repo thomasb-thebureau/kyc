@@ -1421,10 +1421,12 @@ function prefillFromURL(){
     var p=new URLSearchParams(location.search);
     var siren=(p.get('siren')||'').replace(/\D/g,'');
     var raison=p.get('raison')||'', email=p.get('email')||'', tel=p.get('tel')||'',
-        centre=p.get('centre')||'', contact=p.get('contact')||'';
+        centre=p.get('centre')||'', contact=p.get('contact')||'',
+        dom=p.get('dom')||'', u=p.get('u')||'';
     if(!siren && !raison && !email) return;   // lien standard -> aucun pré-remplissage
     var setv=function(id,v){ var el=document.getElementById(id); if(el && v) el.value=v; };
     if(centre){ var cs=document.getElementById('centre'); if(cs){ cs.value=centre; centreStyle(); } }
+    if(dom==='1'||dom==='oui'||dom==='Oui') setDom(true); else if(dom==='0'||dom==='non'||dom==='Non') setDom(false);
     setv('raison',raison); setv('email',email); setv('tel',tel);
     if(contact){ var pa=contact.trim().split(/\s+/); if(pa.length>=2){ setv('rlprenom',pa[0]); setv('rlnom',pa.slice(1).join(' ')); } }
     majBanner_(raison, contact);
@@ -1439,9 +1441,33 @@ function prefillFromURL(){
           if(raison) setv('raison',raison);     // conserve notre dénomination arbitrée
           if(email) setv('email',email); if(tel) setv('tel',tel);
           renderStepper();
-        }).catch(function(){});
-    }
+          if(u) loadClientFiles(u);             // pièces déjà en notre possession (Archie) -> checklist
+        }).catch(function(){ if(u) loadClientFiles(u); });
+    } else if(u) loadClientFiles(u);
   }catch(e){}
+}
+/* /maj — charge dans la checklist les pièces déjà détenues (proxy backend -> Archie). */
+function loadClientFiles(u){
+  if(!CONFIG.ENDPOINT || !u) return;
+  fetch(CONFIG.ENDPOINT+'?files='+encodeURIComponent(u)).then(function(r){return r.json();}).then(function(j){
+    if(!j || !j.ok || !j.files) return;
+    var ids=currentDocIds();
+    j.files.forEach(function(f){
+      var docId=mapNomDocToId_(f.name, ids);
+      if(docId && !state.files[docId] && f.b64){
+        var bin=atob(f.b64), arr=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+        state.files[docId]={name:f.name, size:arr.length, type:'application/pdf', blob:new Blob([arr],{type:'application/pdf'}), auto:true};
+      }
+    });
+    renderDocs();
+  }).catch(function(){});
+}
+function mapNomDocToId_(filename, ids){
+  var base=String(filename).replace(/\.[a-z0-9]+$/i,'');
+  var seg=base.split('_').pop().replace(/-\d+$/,'').toLowerCase();   // NOMDOC normalisé
+  if(seg.indexOf('averifier')===0) return null;                      // « à vérifier » -> pas de case dédiée
+  for(var i=0;i<ids.length;i++){ var nf=(DOC_FILE[ids[i]]||'').toLowerCase(); if(nf && (nf===seg || nf.indexOf(seg)===0 || seg.indexOf(nf)===0)) return ids[i]; }
+  return null;
 }
 function majBanner_(raison, contact){
   var b=document.createElement('div');
