@@ -877,6 +877,7 @@ function fieldHTML(f){
       ${CONFIG.GOOGLE_PLACES_KEY?`<div class="ahint">📍 ${L(LCBT.addr_g)}</div>`:''}</div>`;
   }
   if(f.k==='select'){ const opts=f.optionsKeys?f.optionsKeys.map(k=>({v:I18N[k].fr,t:t(k)})):(f.options||[]).map(o=>({v:o,t:o})); return `<div class="fg"><label class="fl">${L(f.label)}${f.opt?'':' <span class="req">*</span>'}</label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.selectPh)}</option>${opts.map(o=>`<option value="${o.v.replace(/"/g,'&quot;')}" ${v===o.v?'selected':''}>${o.t}</option>`).join('')}</select></div>`; }
+  if(f.id==='c_rcs') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${v}" oninput="this.value=fmtSiret(this.value);setLcb('c_rcs',this.value)"></div>`;
   if(f.k==='pays') return comboHTML(f,'risk');
   if(f.k==='secteur'){ return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.paysPh)}</option>${SECTEURS.map(s=>`<option ${v===s?'selected':''}>${s}</option>`).join('')}</select></div>`; }
   return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" value="${v}" oninput="setLcb('${f.id}',this.value)"></div>`;
@@ -1046,9 +1047,10 @@ function fillFromCompany(r){
   if(s.code_postal) state.lcb.c_siege_cp=s.code_postal;
   if(s.libelle_commune) state.lcb.c_siege_ville=s.libelle_commune;
   state.lcb.c_siege_pays='France';
-  if(s.siret) state.lcb.c_rcs=s.siret;
+  if(s.siret) state.lcb.c_rcs=fmtSiret(s.siret);
   if(r.date_creation) state.lcb.c_datecrea=r.date_creation;
   inpiAutofill(r.siren); // capital social via le backend (RNE/INPI), si déployé
+  checkBodacc(r.siren);  // Q7/Q8 (dirigeant/statuts) via BODACC
 }
 /* Q5 — Le dirigeant gère-t-il plusieurs sociétés ? Recherche par dirigeant (API ouverte). */
 async function checkGerantMultiple(prenom, nom, curSiren){
@@ -1063,19 +1065,40 @@ async function checkGerantMultiple(prenom, nom, curSiren){
     if(state.dom && document.getElementById('lcbBody')) renderLCB();
   }catch(e){ /* silencieux */ }
 }
+/* Q7 / Q8 — changement de dirigeant / modification des statuts sur 12 mois, via BODACC (DILA, API ouverte).
+   Renseigne les dates et la nature des annonces. */
+async function checkBodacc(siren){
+  siren=String(siren||'').replace(/\D/g,''); if(siren.length!==9) return;
+  try{
+    const base='https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records';
+    const r=await fetch(base+'?where='+encodeURIComponent('registre LIKE "'+siren+'"')+'&order_by=dateparution%20DESC&limit=20');
+    const j=await r.json(); const recs=j.results||[];
+    const now=new Date(), lim=new Date(now.getFullYear()-1, now.getMonth(), now.getDate());
+    const dir=[], stat=[];
+    recs.forEach(x=>{
+      if(!x.dateparution) return; if(new Date(x.dateparution)<lim) return;
+      let desc=''; try{ desc=(JSON.parse(x.modificationsgenerales||'{}').descriptif)||''; }catch(_){}
+      const blob=((x.familleavis_lib||'')+' '+desc+' '+(typeof x.acte==='string'?x.acte:JSON.stringify(x.acte||''))).toLowerCase();
+      const dd=String(x.dateparution).split('-').reverse().join('/');
+      const lib=desc||x.familleavis_lib||'modification';
+      if(/administration|dirigeant|g[ée]rant|repr[ée]sentant|pr[ée]sident|gestion|gouvernance/.test(blob)) dir.push(dd+' — '+lib);
+      if(/statut|capital|objet|d[ée]nomination|forme juridique|si[èe]ge|transformation/.test(blob)) stat.push(dd+' — '+lib);
+    });
+    state.lcb.q7 = dir.length?'oui':'non';
+    if(dir.length) state.lcb.q7_pourquoi='Annonces BODACC : '+dir.join(' ; ');
+    state.lcb.q8 = stat.length?'oui':'non';
+    if(stat.length) state.lcb.q8_quoi='Annonces BODACC : '+stat.join(' ; ');
+    if(state.dom&&document.getElementById('lcbBody')) renderLCB();
+  }catch(e){ /* silencieux */ }
+}
 /* Récupère le capital social (RNE/INPI) via le proxy backend et pré-remplit la fiche. Sans effet si ENDPOINT non configuré. */
 async function inpiAutofill(siren){
   if(!CONFIG.ENDPOINT || !siren) return;
   try{
     const r=await fetch(CONFIG.ENDPOINT+(CONFIG.ENDPOINT.indexOf('?')<0?'?':'&')+'siren='+encodeURIComponent(String(siren).replace(/\D/g,'')),{method:'GET'});
     const j=await r.json();
-    if(j){
-      if(j.capital!=null) state.lcb.c_capital=String(j.capital);
-      if(j.statuts12m!=null) state.lcb.q8=j.statuts12m?'oui':'non';   // Q8 : statuts modifiés < 12 mois (RNE/Actes)
-      if(j.dirigeant12m!=null) state.lcb.q7=j.dirigeant12m?'oui':'non'; // Q7 : changement de dirigeant < 12 mois
-      if(state.dom&&document.getElementById('lcbBody')) renderLCB();
-    }
-  }catch(e){ /* silencieux : valeurs saisies manuellement */ }
+    if(j && j.capital!=null){ state.lcb.c_capital=String(j.capital); if(state.dom&&document.getElementById('lcbBody')) renderLCB(); }
+  }catch(e){ /* silencieux : capital saisi manuellement */ }
 }
 function cbHide(fieldId){ setTimeout(()=>{ const b=document.getElementById(fieldId+'_list'); if(b) b.style.display='none'; const i=document.getElementById(fieldId+'_cb'); if(i) i.setAttribute('aria-expanded','false'); },160); }
 function setYN(id,v){ state.lcb[id]=v; renderLCB(); }
@@ -1283,6 +1306,15 @@ function buildPayload(){
 }
 
 /* ===== Init ===== */
+/* Saisie en MAJUSCULES (sauf email, date, recherche entreprise) — phase capture pour précéder les formateurs */
+document.addEventListener('input', function(e){
+  var el=e.target;
+  if(!el || (el.tagName!=='INPUT' && el.tagName!=='TEXTAREA')) return;
+  if(el.type==='email' || el.type==='date' || el.id==='coSearch') return;
+  var p=el.selectionStart, q=el.selectionEnd, u=el.value.toUpperCase();
+  if(u!==el.value){ el.value=u; try{ el.setSelectionRange(p,q); }catch(_){ } }
+}, true);
+
 renderEntities(); renderDocs(); renderStepper(); applyLang(); setThemeIcon(); gsapIntro();
 /* Mode jour par défaut (le bouton lune permet de basculer en sombre). */
 </script>
