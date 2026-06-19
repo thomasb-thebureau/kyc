@@ -877,7 +877,7 @@ function fieldHTML(f){
       ${CONFIG.GOOGLE_PLACES_KEY?`<div class="ahint">📍 ${L(LCBT.addr_g)}</div>`:''}</div>`;
   }
   if(f.k==='select'){ const opts=f.optionsKeys?f.optionsKeys.map(k=>({v:I18N[k].fr,t:t(k)})):(f.options||[]).map(o=>({v:o,t:o})); return `<div class="fg"><label class="fl">${L(f.label)}${f.opt?'':' <span class="req">*</span>'}</label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.selectPh)}</option>${opts.map(o=>`<option value="${o.v.replace(/"/g,'&quot;')}" ${v===o.v?'selected':''}>${o.t}</option>`).join('')}</select></div>`; }
-  if(f.id==='c_rcs') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${v}" oninput="this.value=fmtSiret(this.value);setLcb('c_rcs',this.value)"></div>`;
+  if(f.id==='c_rcs') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${fmtSiret(v)}" oninput="this.value=fmtSiret(this.value);setLcb('c_rcs',this.value)"></div>`;
   if(f.k==='pays') return comboHTML(f,'risk');
   if(f.k==='secteur'){ return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.paysPh)}</option>${SECTEURS.map(s=>`<option ${v===s?'selected':''}>${s}</option>`).join('')}</select></div>`; }
   return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" value="${v}" oninput="setLcb('${f.id}',this.value)"></div>`;
@@ -907,7 +907,7 @@ function questionHTML(q,i){
 function lcbId(id){ return LCB_IDENT.find(f=>f.id===id); }
 function renderLCB(){
   const el=document.getElementById('lcbBody'); if(!el) return;
-  if(!state.lcb.c_rcs) state.lcb.c_rcs=val('siret'); // préremplissage depuis le SIRET (page 1)
+  if(!state.lcb.c_rcs) state.lcb.c_rcs=fmtSiret(val('siret')); // préremplissage depuis le SIRET (page 1)
   // préremplissage de la question PPE depuis l'étape Déclarations
   if(state.lcb.q2===undefined){ const ppe=document.querySelector('input[name=ppe]:checked'); if(ppe) state.lcb.q2=ppe.value; }
   el.innerHTML=`
