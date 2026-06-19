@@ -56,14 +56,17 @@ body.dark .dark-toggle:hover{border-color:var(--or)}
 
 /* ===== Stepper ===== */
 .steps{display:flex;gap:6px;margin:26px 0 6px;flex-wrap:wrap}
-.step{flex:1;min-width:120px;display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--cf);border-radius:12px;background:var(--blanc);transition:border-color .25s,background .25s}
+.step{flex:1;min-width:120px;display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--cf);border-radius:12px;background:var(--blanc);transition:border-color .25s,background .25s;cursor:pointer}
+.step:hover{border-color:var(--or)}
+.step:focus-visible{outline:none;box-shadow:0 0 0 3px var(--op)}
 .step .n{width:24px;height:24px;border-radius:50%;background:var(--cf);color:var(--gris);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;transition:all .25s}
 .step .lab{font-size:11px;letter-spacing:.04em;color:var(--gris);font-weight:600;line-height:1.2}
 .step.on{border-color:var(--vert);background:var(--vp)}
-.step.on .n{background:var(--vert);color:var(--ivoire)}
 .step.on .lab{color:var(--encre)}
 .step.done .n{background:var(--ok);color:#fff}
 .step.done .lab{color:var(--encre)}
+.step.todo .n{background:rgba(192,120,48,.16);color:#b5651d;font-size:11px}
+body.dark .step.todo .n{color:#e0a36a}
 .bar{height:4px;border-radius:50px;background:var(--cf);overflow:hidden;margin:4px 0 22px}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--vert),var(--or));border-radius:50px;width:25%;transition:width .4s cubic-bezier(.4,0,.2,1)}
 
@@ -227,6 +230,7 @@ body.dark .badge.recent{color:#e0a36a}
 .rl-recap{font-size:12.5px;color:var(--encre);background:var(--vp);border:1px solid var(--cf);border-radius:9px;padding:10px 13px;margin-bottom:13px}
 .rl-recap b{font-weight:700}
 #coSearch{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23B09438' stroke-width='2'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");background-repeat:no-repeat;background-position:right 13px center;padding-right:38px}
+#coSearch.cs-ok{color:var(--vert);font-weight:600;border-color:var(--vert);background-color:var(--vp);background-image:none}
 .err-msg{color:var(--err);font-size:12px;margin-top:8px;font-weight:600;display:none}
 .err-msg.on{display:block}
 
@@ -281,8 +285,10 @@ body.dark .page-sub b{color:var(--ivoire)}
 
 <div class="top-bar">
   <div class="logo-wrap">
-    <img class="logo-main" src="logo.svg" alt="The Bureau"/>
-    <img class="logo-main-dark" src="logo-white.svg" alt="The Bureau"/>
+    <a href="#" onclick="go(0);window.scrollTo({top:0});return false;" title="Revenir au début" aria-label="Revenir au début" style="display:flex;align-items:center;line-height:0">
+      <img class="logo-main" src="logo.svg" alt="The Bureau"/>
+      <img class="logo-main-dark" src="logo-white.svg" alt="The Bureau"/>
+    </a>
     <div class="logo-div"></div>
     <span class="logo-tag">KYC/LCB-FT</span>
   </div>
@@ -1025,7 +1031,7 @@ function fmtTva(v){ v=(v||'').toUpperCase().replace(/[^A-Z0-9]/g,''); const cc=(
 
 /* ===== Recherche entreprise (API Recherche d'entreprises — data.gouv) ===== */
 let _coTimer=null, _coResults=[];
-function coSearchDebounced(){ clearTimeout(_coTimer); _coTimer=setTimeout(coSearch,350); }
+function coSearchDebounced(){ const i=document.getElementById('coSearch'); if(i) i.classList.remove('cs-ok'); clearTimeout(_coTimer); _coTimer=setTimeout(coSearch,350); }
 async function coSearch(){
   const inp=document.getElementById('coSearch'), box=document.getElementById('coList');
   const q=(inp.value||'').trim();
@@ -1042,7 +1048,14 @@ async function coSearch(){
 }
 function esc(s){ return String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 function coHide(){ setTimeout(()=>{ const b=document.getElementById('coList'); if(b) b.style.display='none'; const i=document.getElementById('coSearch'); if(i) i.setAttribute('aria-expanded','false'); },180); }
-function coPick(i){ const r=_coResults[i]; if(r) fillFromCompany(r); const b=document.getElementById('coList'); if(b) b.style.display='none'; }
+function coPick(i){
+  const r=_coResults[i]; if(!r) return; fillFromCompany(r);
+  const b=document.getElementById('coList'); if(b) b.style.display='none';
+  const inp=document.getElementById('coSearch'), s=r.siege||{};
+  inp.value='✅ '+(r.nom_raison_sociale||r.nom_complet||'')+(s.siret?' · SIRET '+fmtSiret(s.siret):'')+(s.adresse?' · '+s.adresse:'');
+  inp.classList.add('cs-ok'); inp.setAttribute('aria-expanded','false');
+  renderStepper();
+}
 
 /* Type de structure déduit de l'API (société / EIRL / agent / asso) */
 function mapEntity(r){
@@ -1253,10 +1266,22 @@ const PANELS=[
   {panel:'p3',   key:'recap',     lab:'s4'}
 ];
 function activePanels(){ return PANELS.filter(p=>!p.domOnly||state.dom); }
+/* Une étape est-elle complète ? (pilote la coche verte vs le sablier orange) */
+function stepComplete(key){
+  if(key==='structure'){ const sir=state.entity==='asso'?true:(val('siret')&&val('tva')); return !!(val('centre')&&val('raison')&&val('forme')&&val('siren')&&sir&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')); }
+  if(key==='decl'){ return document.getElementById('sanction').checked; }
+  if(key==='lcb'){ return lcbRequired().every(id=>state.lcb[id]&&String(state.lcb[id]).trim()); }
+  if(key==='docs'){ const ids=currentDocIds(); return ids.length>0 && ids.every(id=>state.files[id]); }
+  if(key==='recap'){ return document.getElementById('rgpd').checked; }
+  return false;
+}
 function renderStepper(){
   const ap=activePanels();
-  document.getElementById('stepper').innerHTML=ap.map((p,i)=>
-    `<div class="step ${i===state.idx?'on':''} ${i<state.idx?'done':''}" ${i===state.idx?'aria-current="step"':''}><span class="n">${i<state.idx?'✓':(i+1)}</span><span class="lab">${t(p.lab)}</span></div>`).join('');
+  document.getElementById('stepper').innerHTML=ap.map((p,i)=>{
+    const done=stepComplete(p.key), cur=i===state.idx;
+    return `<div class="step ${cur?'on':''} ${done?'done':'todo'}" ${cur?'aria-current="step"':''} role="button" tabindex="0" onclick="go(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go(${i});}">
+      <span class="n">${done?'✓':'⏳'}</span><span class="lab">${t(p.lab)}</span></div>`;
+  }).join('');
 }
 function go(idx){
   const ap=activePanels();
