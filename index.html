@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>The Bureau — Dossier d'entrée</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ===== Charte partagée (alignée theme.css) ===== */
+:root{--encre:#0F0F0F;--creme:#FAFAFA;--cf:rgba(15,15,15,.09);--or:#B09438;--or2:#B09438;--orAA:#7A6015;--op:rgba(176,148,56,.08);--gris:rgba(15,15,15,.60);--gc:rgba(15,15,15,.45);--blanc:#fff;--vert:#1E4035;--vp:rgba(30,64,53,.06);--ivoire:#F5EFE5;--ok:#1E7A4D;--err:#b3261e}
+body.dark{--creme:#1a1a1a;--blanc:#222;--encre:#F5EFE5;--cf:rgba(255,255,255,.10);--gris:rgba(255,255,255,.62);--gc:rgba(255,255,255,.45);--or:#D4B870;--or2:#D4B870;--orAA:#D4B870;--op:rgba(212,184,112,.12);--vert:#4a9a7a;--vp:rgba(74,154,122,.12);--ivoire:#F5EFE5;--ok:#4cae84}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:'Plus Jakarta Sans',sans-serif;font-weight:300;color:var(--encre);background:var(--creme);min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.6}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:
+  radial-gradient(120% 90% at 50% -10%,var(--vp),transparent 60%);}
+.wrap{max-width:920px;margin:0 auto;padding:0 18px 80px}
+
+/* ===== Skip link (a11y) ===== */
+.skip{position:absolute;left:-999px;top:0;background:var(--vert);color:var(--ivoire);padding:10px 16px;border-radius:0 0 10px 0;z-index:99;font-weight:600;font-size:13px}
+.skip:focus{left:0}
+
+/* ===== Header ===== */
+/* ===== Header blanc (charte Team Lounge) ===== */
+.top-bar{background:rgba(255,255,255,.82);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;border-bottom:1px solid rgba(15,15,15,.06)}
+body.dark .top-bar{background:rgba(26,26,26,.92);border-bottom-color:rgba(255,255,255,.08)}
+.logo-wrap{display:flex;align-items:center;gap:14px}
+.logo-main{height:30px;width:auto}
+.logo-main-dark{display:none;height:30px;width:auto}
+body.dark .logo-main{display:none}
+body.dark .logo-main-dark{display:block}
+.logo-div{width:1px;height:22px;background:rgba(15,15,15,.12);flex-shrink:0}
+body.dark .logo-div{background:rgba(255,255,255,.15)}
+.logo-tag{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--orAA);font-weight:700}
+body.dark .logo-tag{color:var(--or)}
+.top-right{display:flex;align-items:center;gap:12px}
+.lang-toggle{display:inline-flex;align-items:center;height:30px;border:1px solid var(--cf);border-radius:50px;overflow:hidden}
+.lang-toggle button{background:none;border:none;padding:0 12px;height:100%;font:700 10px 'Plus Jakarta Sans';letter-spacing:.1em;color:var(--gc);cursor:pointer;transition:all .25s}
+.lang-toggle button.on{background:var(--vert);color:#F5EFE5}
+body.dark .lang-toggle{border-color:rgba(255,255,255,.15)}
+body.dark .lang-toggle button{color:rgba(255,255,255,.45)}
+body.dark .lang-toggle button.on{background:var(--or);color:#1a1a1a}
+.dark-toggle{background:none;border:1px solid var(--cf);border-radius:50px;width:34px;height:30px;cursor:pointer;color:var(--gris);display:flex;align-items:center;justify-content:center;transition:all .25s}
+.dark-toggle:hover{border-color:var(--or);color:var(--orAA)}
+.dark-toggle svg{width:16px;height:16px}
+body.dark .dark-toggle{border-color:rgba(255,255,255,.2);color:var(--or)}
+body.dark .dark-toggle:hover{border-color:var(--or)}
+/* Intro de page (sur fond crème) */
+.page-intro{max-width:920px;margin:26px auto 0;padding:0 18px}
+.page-intro .eyebrow{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--orAA);font-weight:700;margin-bottom:7px}
+.page-h1{margin:0;font-weight:300;font-size:clamp(22px,3.4vw,30px);letter-spacing:.4px;line-height:1.12;color:var(--vert)}
+.page-h1 b{font-weight:700;color:var(--vert)}
+.page-sub{font-size:12.5px;color:var(--gris);margin-top:8px;max-width:54ch}
+
+/* ===== Stepper ===== */
+.steps{display:flex;gap:6px;margin:26px 0 6px;flex-wrap:wrap}
+.step{flex:1;min-width:120px;display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--cf);border-radius:12px;background:var(--blanc);transition:border-color .25s,background .25s}
+.step .n{width:24px;height:24px;border-radius:50%;background:var(--cf);color:var(--gris);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;transition:all .25s}
+.step .lab{font-size:11px;letter-spacing:.04em;color:var(--gris);font-weight:600;line-height:1.2}
+.step.on{border-color:var(--vert);background:var(--vp)}
+.step.on .n{background:var(--vert);color:var(--ivoire)}
+.step.on .lab{color:var(--encre)}
+.step.done .n{background:var(--ok);color:#fff}
+.step.done .lab{color:var(--encre)}
+.bar{height:4px;border-radius:50px;background:var(--cf);overflow:hidden;margin:4px 0 22px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--vert),var(--or));border-radius:50px;width:25%;transition:width .4s cubic-bezier(.4,0,.2,1)}
+
+/* ===== Panels / cards ===== */
+.panel{display:none;animation:fade .35s ease}
+.panel.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.panel.on{animation:none}*{transition:none!important}}
+.card{background:var(--blanc);border:1px solid var(--cf);border-radius:14px;padding:22px 24px;margin-bottom:16px}
+.sec{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--orAA);font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:8px}
+.sec::before{content:'';width:14px;height:1.5px;background:var(--or);flex-shrink:0}
+.hint{font-size:12px;color:var(--gris);margin:-8px 0 16px}
+
+/* ===== Form fields ===== */
+label.fl{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris);margin:0 0 5px;font-weight:600}
+.req{color:var(--orAA)}
+.finp,.fsel,textarea{width:100%;border:1px solid var(--cf);border-radius:9px;padding:11px 13px;font:400 14px 'Plus Jakarta Sans';color:var(--encre);background:var(--blanc);outline:none;transition:border-color .2s,box-shadow .2s}
+.finp:focus,textarea:focus,.fsel:focus{border-color:var(--or);box-shadow:0 0 0 3px var(--op)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
+@media(max-width:560px){.row2,.row3{grid-template-columns:1fr}}
+.fg{margin-bottom:14px}
+textarea{resize:vertical;min-height:84px;line-height:1.5}
+.fsel{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23B09438' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 13px center;padding-right:36px;cursor:pointer}
+
+/* ===== Segmented choice (domiciliation) ===== */
+.seg{display:inline-flex;border:1px solid var(--cf);border-radius:50px;overflow:hidden;background:var(--blanc)}
+.seg button{background:none;border:none;padding:10px 22px;font:700 12px 'Plus Jakarta Sans';letter-spacing:.04em;color:var(--gris);cursor:pointer;transition:all .2s}
+.seg button.on{background:var(--vert);color:var(--ivoire)}
+
+/* ===== Entity radio cards ===== */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+@media(max-width:560px){.cards{grid-template-columns:1fr}}
+.ec{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--cf);border-radius:12px;padding:14px 15px;cursor:pointer;background:var(--blanc);transition:all .2s}
+.ec:hover{border-color:var(--or)}
+.ec input{position:absolute;opacity:0;width:0;height:0}
+.ec .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--cf);flex-shrink:0;margin-top:2px;position:relative;transition:all .2s}
+.ec .et{display:block;font-weight:600;font-size:13.5px}
+.ec .ed{display:block;font-size:11.5px;color:var(--gris);margin-top:2px}
+.ec:has(input:checked){border-color:var(--vert);background:var(--vp)}
+.ec:has(input:checked) .dot{border-color:var(--vert)}
+.ec:has(input:checked) .dot::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--vert)}
+.ec input:focus-visible ~ .dot{box-shadow:0 0 0 3px var(--op)}
+
+/* ===== Toggle row (switch) ===== */
+.tgl-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1px solid var(--cf);border-radius:11px;background:var(--vp);cursor:pointer;margin-bottom:13px}
+.sw{width:42px;height:24px;border-radius:50px;background:var(--cf);position:relative;flex-shrink:0;transition:background .25s}
+.sw.on{background:var(--vert)}
+.sw i{position:absolute;top:2.5px;left:2.5px;width:19px;height:19px;border-radius:50%;background:#fff;transition:left .25s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.sw.on i{left:20.5px}
+.tgl-row .t1{font-weight:600;font-size:13px}
+.tgl-row .t2{font-size:11px;color:var(--gris)}
+
+/* ===== Radio block (PPE) ===== */
+.rblock{display:flex;flex-direction:column;gap:9px}
+.ropt{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--cf);border-radius:11px;padding:13px 15px;cursor:pointer;transition:all .2s}
+.ropt:hover{border-color:var(--or)}
+.ropt input{position:absolute;opacity:0;width:0;height:0}
+.ropt .dot{width:19px;height:19px;border-radius:50%;border:2px solid var(--cf);flex-shrink:0;margin-top:1px;position:relative;transition:all .2s}
+.ropt:has(input:checked){border-color:var(--vert);background:var(--vp)}
+.ropt:has(input:checked) .dot{border-color:var(--vert)}
+.ropt:has(input:checked) .dot::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--vert)}
+.ropt input:focus-visible ~ .dot{box-shadow:0 0 0 3px var(--op)}
+.ropt .rt{display:block;font-weight:600;font-size:13px}
+.ropt .rd{display:block;font-size:11.5px;color:var(--gris);margin-top:2px}
+
+/* ===== Disclosure (accordéon) ===== */
+details{border:1px solid var(--cf);border-radius:10px;padding:0;margin-top:12px;background:var(--blanc)}
+details summary{list-style:none;cursor:pointer;padding:12px 15px;font-size:12px;font-weight:600;color:var(--orAA);display:flex;align-items:center;gap:8px}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:'+';font-size:16px;color:var(--or);transition:transform .2s}
+details[open] summary::before{content:'–'}
+details .dbody{padding:0 15px 14px;font-size:12.5px;color:var(--gris);line-height:1.55}
+details .dbody ol{margin:6px 0;padding-left:20px}
+details .dbody li{margin-bottom:3px}
+
+/* ===== Bénéficiaires effectifs (repeatable) ===== */
+.be{border:1px solid var(--cf);border-radius:11px;padding:14px;margin-bottom:11px;position:relative;background:var(--blanc)}
+.be .rm{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--gc);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:6px}
+.be .rm:hover{color:var(--err);background:rgba(179,38,30,.08)}
+.add-btn{border:1px dashed var(--or);background:var(--op);color:var(--orAA);border-radius:11px;padding:11px 16px;font:700 11px 'Plus Jakarta Sans';letter-spacing:.06em;cursor:pointer;width:100%;text-align:center;transition:all .2s}
+.add-btn:hover{background:var(--vp);border-color:var(--vert);color:var(--vert)}
+
+/* ===== Document checklist ===== */
+.dprog{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:14px;flex-wrap:wrap}
+.dprog .cnt{font-size:13px;font-weight:600}
+.dprog .cnt b{color:var(--vert)}
+.doc{display:flex;align-items:center;gap:13px;border:1px solid var(--cf);border-radius:11px;padding:13px 15px;margin-bottom:10px;transition:all .25s;background:var(--blanc)}
+.doc.filled{border-color:var(--ok);background:linear-gradient(90deg,rgba(30,122,77,.05),transparent)}
+.doc .tick{width:26px;height:26px;border-radius:50%;border:2px solid var(--cf);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;transition:all .25s}
+.doc.filled .tick{background:var(--ok);border-color:var(--ok)}
+.doc .tick svg{width:13px;height:13px;opacity:0;transition:opacity .2s}
+.doc.filled .tick svg{opacity:1}
+.doc .dinfo{flex:1;min-width:0}
+.doc .dname{font-size:13.5px;font-weight:600;line-height:1.3}
+.doc .dbadges{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.badge{font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 9px;border-radius:50px}
+.badge.req{background:var(--vp);color:var(--vert)}
+.badge.cond{background:var(--op);color:var(--orAA)}
+.badge.recent{background:rgba(192,120,48,.12);color:#9a5e22}
+body.dark .badge.recent{color:#e0a36a}
+.doc .dfile{font-size:11px;color:var(--gris);margin-top:4px;word-break:break-all}
+.up{flex-shrink:0}
+.up label{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cf);border-radius:50px;padding:8px 15px;font:700 11px 'Plus Jakarta Sans';letter-spacing:.04em;color:var(--gris);cursor:pointer;transition:all .2s;background:var(--blanc)}
+.up label:hover{border-color:var(--or);color:var(--orAA)}
+.doc.filled .up label{color:var(--ok);border-color:var(--ok)}
+.up input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.up label svg{width:13px;height:13px}
+
+/* ===== Récap ===== */
+.recap{font-size:13px}
+.recap .rr{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--cf)}
+.recap .rr:last-child{border-bottom:none}
+.recap .rk{color:var(--gris)}
+.recap .rv{font-weight:600;text-align:right}
+.recap .rv.warn{color:var(--err)}
+.consent{display:flex;gap:11px;align-items:flex-start;font-size:12.5px;color:var(--gris);margin-top:6px;cursor:pointer;line-height:1.5}
+.consent input{margin-top:3px;width:17px;height:17px;accent-color:var(--vert);flex-shrink:0}
+
+/* ===== Footer nav ===== */
+.nav{display:flex;align-items:center;gap:11px;margin-top:8px}
+.spacer{flex:1}
+.btn-ghost{background:none;border:1px solid var(--cf);border-radius:50px;padding:12px 20px;font:600 12px 'Plus Jakarta Sans';letter-spacing:.06em;text-transform:uppercase;color:var(--gris);cursor:pointer;transition:all .2s}
+.btn-ghost:hover{border-color:var(--gris);color:var(--encre)}
+.btn-ghost:disabled{opacity:.4;cursor:not-allowed}
+.btn-next,.btn-send{background:var(--vert);color:var(--ivoire);border:none;border-radius:50px;padding:13px 26px;font:700 12px 'Plus Jakarta Sans';letter-spacing:.06em;cursor:pointer;display:inline-flex;align-items:center;gap:9px;transition:all .2s}
+.btn-next:hover{background:#163026}
+.btn-send{background:var(--or);color:#fff;box-shadow:0 8px 24px rgba(176,148,56,.34)}
+.btn-send:hover{background:#9c8230}
+.btn-send:disabled{background:var(--cf);color:var(--gc);box-shadow:none;cursor:not-allowed}
+.btn-next svg,.btn-send svg{width:15px;height:15px}
+
+/* ===== Success ===== */
+.success{text-align:center;padding:40px 20px}
+.success .circle{width:78px;height:78px;border-radius:50%;background:var(--vp);border:2px solid var(--ok);margin:0 auto 20px;display:flex;align-items:center;justify-content:center}
+.success .circle svg{width:36px;height:36px;stroke:var(--ok)}
+.success .circle svg path{stroke-dasharray:30;stroke-dashoffset:30;animation:draw .5s .15s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.success h2{font-weight:300;font-size:24px;margin:0 0 8px}
+.success h2 b{font-weight:700}
+.success p{color:var(--gris);font-size:13.5px;max-width:42ch;margin:0 auto}
+
+.foot-wrap{text-align:center;margin-top:34px}
+.foot-chevron{height:20px;width:auto;display:block;margin:0 auto 12px;opacity:.85}
+.foot{text-align:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gc);margin:0}
+.err-msg{color:var(--err);font-size:12px;margin-top:8px;font-weight:600;display:none}
+.err-msg.on{display:block}
+
+/* ===== Fiche LCB-FT (Annexe 3) ===== */
+.banner{border:1px solid var(--cf);border-left:3px solid var(--or);border-radius:12px;padding:16px 18px;background:var(--op);margin-bottom:16px}
+.banner .bt{font-weight:700;font-size:13px;color:var(--orAA);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.banner .bt svg{width:16px;height:16px;flex-shrink:0}
+.banner p{margin:6px 0 0;font-size:12.5px;color:var(--gris);line-height:1.55}
+.banner .law{font-size:11px;color:var(--gris);margin-top:9px;padding-top:9px;border-top:1px solid var(--cf)}
+.banner .law b{color:var(--encre);font-weight:600}
+.qbloc{border:1px solid var(--cf);border-radius:12px;padding:16px 18px;margin-bottom:12px;background:var(--blanc)}
+.qhead{display:flex;gap:12px;align-items:flex-start}
+.qnum{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--vp);color:var(--vert);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
+.qtxt{font-size:13.5px;font-weight:600;line-height:1.4;flex:1}
+.ynseg{display:inline-flex;border:1px solid var(--cf);border-radius:50px;overflow:hidden;background:var(--creme);margin-top:11px}
+.ynseg button{background:none;border:none;padding:8px 22px;font:700 12px 'Plus Jakarta Sans';color:var(--gris);cursor:pointer;transition:all .2s}
+.ynseg button.on[data-v=oui]{background:var(--vert);color:var(--ivoire)}
+.ynseg button.on[data-v=non]{background:var(--gris);color:var(--creme)}
+.followup{margin-top:13px;padding-left:14px;border-left:2px solid var(--vp);animation:fade .3s ease}
+.followup .fg:last-child{margin-bottom:0}
+.info-d{margin-top:12px}
+.info-d summary{color:var(--orAA);font-size:11.5px}
+.info-d summary::before{content:'ℹ';font-style:normal;font-size:13px}
+/* Bulle "?" discrète à droite des questions */
+.qinfo{flex-shrink:0;width:20px;height:20px;border-radius:50%;border:1px solid var(--cf);color:var(--orAA);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:help;position:relative}
+.qinfo:hover,.qinfo:focus{border-color:var(--or);background:var(--op);outline:none}
+.qtip{position:absolute;right:-2px;top:150%;width:min(290px,72vw);background:var(--blanc);border:1px solid var(--cf);border-radius:10px;box-shadow:0 12px 32px rgba(15,15,15,.18);padding:12px 14px;font-size:11.5px;font-weight:400;line-height:1.55;color:var(--gris);z-index:50;display:none;text-align:left;cursor:auto}
+.qtip b{display:block;color:var(--orAA);margin-bottom:5px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.qinfo:hover .qtip,.qinfo:focus .qtip{display:block}
+.pays-grid{columns:3;column-gap:18px;font-size:12px;color:var(--gris);margin:4px 0}
+@media(max-width:560px){.pays-grid{columns:2}}
+.pays-grid span{display:flex;align-items:center;gap:7px;break-inside:avoid;padding:2px 0}
+.flag{width:18px;height:auto;border-radius:1px;border:1px solid rgba(15,15,15,.08);vertical-align:middle;flex-shrink:0}
+body.dark .flag{border-color:rgba(255,255,255,.12)}
+.centre-adr{margin-top:11px;font-size:12.5px;color:var(--vert);font-weight:600;background:var(--vp);border-radius:8px;padding:9px 12px}
+.page-sub b{color:var(--encre);font-weight:600}
+body.dark .page-sub b{color:var(--ivoire)}
+.ahint{font-size:11px;color:var(--orAA);margin-top:8px;background:var(--op);border-radius:7px;padding:7px 10px}
+/* Combobox pays avec drapeaux */
+.cb-wrap{position:relative}
+.cb-field{position:relative;display:flex;align-items:center}
+.cb-flag{position:absolute;left:12px;display:flex;pointer-events:none}
+.finp.has-flag{padding-left:44px}
+.cb-list{position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:4px;background:var(--blanc);border:1px solid var(--cf);border-radius:9px;box-shadow:0 10px 30px rgba(15,15,15,.14);max-height:240px;overflow-y:auto}
+.cb-opt{display:flex;align-items:center;gap:9px;padding:9px 13px;font-size:13px;cursor:pointer}
+.cb-opt:hover{background:var(--vp)}
+.cb-opt span{flex:1}
+</style>
+</head>
+<body>
+<a class="skip" href="#main" data-i="skip">Aller au contenu</a>
+
+<div class="top-bar">
+  <div class="logo-wrap">
+    <img class="logo-main" src="logo.svg" alt="The Bureau"/>
+    <img class="logo-main-dark" src="logo-white.svg" alt="The Bureau"/>
+    <div class="logo-div"></div>
+    <span class="logo-tag">KYC/LCB-FT</span>
+  </div>
+  <div class="top-right">
+    <div class="lang-toggle" role="group" aria-label="Langue / Language">
+      <button data-lang="fr" class="on" onclick="setLang('fr')">FR</button><button data-lang="en" onclick="setLang('en')">EN</button>
+    </div>
+    <button class="dark-toggle" id="darkToggle" onclick="toggleTheme()" aria-label="Mode clair / sombre" title="Mode clair / sombre"></button>
+  </div>
+</div>
+
+<div class="page-intro">
+  <div class="eyebrow" data-i="eyebrow">Constitution du dossier</div>
+  <h1 class="page-h1" data-i="title">Votre <b>dossier d'entrée</b></h1>
+  <div class="page-sub" data-i="subtitle">Renseignez vos informations et joignez les pièces requises. Vos documents sont transmis de façon sécurisée à The Bureau.</div>
+</div>
+
+<main class="wrap" id="main">
+
+  <!-- Stepper (rendu dynamiquement : 5 étapes si domiciliation, 4 sinon) -->
+  <nav class="steps" id="stepper" aria-label="Progression"></nav>
+  <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25"><i id="barfill"></i></div>
+
+  <!-- ÉTAPE 1 : STRUCTURE -->
+  <section class="panel on" id="p0" aria-labelledby="st0">
+    <div class="card">
+      <h2 class="sec" data-i="sec_centre">Centre de rattachement</h2>
+      <p class="hint" data-i="hint_centre">Sélectionnez le centre The Bureau auprès duquel vous vous installez.</p>
+      <select class="fsel" id="centre" onchange="updateCentre()"><option value="" data-i="centre_ph">Sélectionnez votre centre…</option></select>
+      <div class="centre-adr" id="centreAdr" style="display:none"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="sec" data-i="sec_dom">Domiciliation</h2>
+      <p class="hint" data-i="hint_dom">The Bureau assure-t-il la domiciliation de votre siège social ? La liste des pièces s'adapte à votre réponse.</p>
+      <div class="seg" role="group" aria-label="Domiciliation">
+        <button id="domNon" class="on" onclick="setDom(false)" data-i="dom_non">Sans domiciliation</button>
+        <button id="domOui" onclick="setDom(true)" data-i="dom_oui">Avec domiciliation</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="sec" data-i="sec_type">Type de structure</h2>
+      <div class="cards" id="entityCards" role="radiogroup" aria-label="Type de structure"></div>
+      <label class="tgl-row" style="margin-top:14px" id="etrRow">
+        <span class="sw" id="etrSw"><i></i></span>
+        <input type="checkbox" id="etranger" style="display:none" onchange="toggleEtr()">
+        <span><span class="t1" data-i="etr1">Siège social à l'étranger</span><span class="t2" data-i="etr2"> · ajoute un justificatif de validité juridique</span></span>
+      </label>
+      <label class="tgl-row" id="loiRow" style="display:none">
+        <span class="sw" id="loiSw"><i></i></span>
+        <input type="checkbox" id="loi1901" style="display:none" onchange="toggleLoi()">
+        <span><span class="t1" data-i="loi1">Association loi 1901</span><span class="t2" data-i="loi2"> · ajoute le n° RNA</span></span>
+      </label>
+    </div>
+
+    <div class="card">
+      <h2 class="sec" data-i="sec_ident">Identité de la structure</h2>
+      <div class="row2">
+        <div class="fg"><label class="fl" for="raison" data-i="f_raison">Dénomination sociale <span class="req">*</span></label><input class="finp" id="raison" autocomplete="organization"></div>
+        <div class="fg"><label class="fl" for="forme" data-i="f_forme">Forme juridique <span class="req">*</span></label>
+          <select class="fsel" id="forme">
+            <option value="" data-i="forme_ph">Sélectionnez…</option>
+            <option>SAS</option><option>SASU</option><option>SARL</option><option>EURL</option><option>SA</option><option>SCA</option><option>SNC</option><option>SCI</option><option>SCM</option><option>SCP</option><option>SCOP</option><option>Auto-entrepreneur / EI</option><option>EIRL</option><option>Agent commercial</option><option>Association</option><option>Fondation</option><option>Fonds de dotation</option><option value="autre" data-i="forme_autre">Autre</option>
+          </select>
+        </div>
+      </div>
+      <div class="row3">
+        <div class="fg"><label class="fl" for="siren" data-i="f_siren">N° SIREN <span class="req">*</span></label><input class="finp" id="siren" inputmode="numeric"></div>
+        <div class="fg"><label class="fl" for="siret" data-i="f_siret">N° SIRET <span class="req">*</span></label><input class="finp" id="siret" inputmode="numeric"></div>
+        <div class="fg"><label class="fl" for="tva" data-i="f_tva">N° TVA <span class="req">*</span></label><input class="finp" id="tva"></div>
+      </div>
+      <div class="fg" id="rnaRow" style="display:none"><label class="fl" for="rna" data-i="f_rna">N° RNA — Répertoire National des Associations</label><input class="finp" id="rna" placeholder="W123456789"></div>
+      <h3 class="sec" style="margin-top:10px" data-i="sec_rl">Représentant légal</h3>
+      <div class="row2">
+        <div class="fg"><label class="fl" for="rlprenom" data-i="f_prenom">Prénom <span class="req">*</span></label><input class="finp" id="rlprenom" autocomplete="given-name"></div>
+        <div class="fg"><label class="fl" for="rlnom" data-i="f_nom">Nom <span class="req">*</span></label><input class="finp" id="rlnom" autocomplete="family-name"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label class="fl" for="email" data-i="f_email">Email <span class="req">*</span></label><input class="finp" id="email" type="email" autocomplete="email"></div>
+        <div class="fg"><label class="fl" for="tel" data-i="f_tel">Téléphone <span class="req">*</span></label><input class="finp" id="tel" type="tel" autocomplete="tel"></div>
+      </div>
+      <p class="err-msg" id="err0" role="alert"></p>
+    </div>
+
+    <div class="nav">
+      <div class="spacer"></div>
+      <button class="btn-next" onclick="next()" data-i="next">Continuer
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ÉTAPE 2 : DÉCLARATIONS LCB-FT -->
+  <section class="panel" id="p1" aria-labelledby="st1">
+    <div class="card">
+      <h2 class="sec" data-i="sec_ppe">Personnes politiquement exposées (PPE)</h2>
+      <p class="hint" data-i="hint_ppe">Au titre des articles L.561-10 et R.561-18 du Code monétaire et financier.</p>
+      <div class="rblock" role="radiogroup" aria-label="Statut PPE">
+        <label class="ropt"><input type="radio" name="ppe" value="non" checked><span class="dot"></span><span><span class="rt" data-i="ppe_non">Je ne suis pas une PPE</span><span class="rd" data-i="ppe_non_d">Ni directement, ni par assimilation (conjoint, enfants, ascendants…).</span></span></label>
+        <label class="ropt"><input type="radio" name="ppe" value="oui"><span class="dot"></span><span><span class="rt" data-i="ppe_oui">Je suis une PPE</span><span class="rd" data-i="ppe_oui_d">Directement ou par assimilation. Un échange complémentaire vous sera proposé.</span></span></label>
+      </div>
+      <details>
+        <summary data-i="ppe_more">Qu'est-ce qu'une PPE ?</summary>
+        <div class="dbody"><span data-i="ppe_intro">Personne exerçant ou ayant cessé depuis moins d'un an l'une des fonctions :</span>
+          <ol>
+            <li data-i="ppe1">Chef d'État, de gouvernement, membre d'un gouvernement ou de la Commission européenne</li>
+            <li data-i="ppe2">Membre d'une assemblée parlementaire, dirigeant de parti politique</li>
+            <li data-i="ppe3">Membre d'une cour suprême, constitutionnelle ou haute juridiction</li>
+            <li data-i="ppe4">Membre d'une cour des comptes</li>
+            <li data-i="ppe5">Dirigeant d'une banque centrale</li>
+            <li data-i="ppe6">Ambassadeur ou chargé d'affaires</li>
+            <li data-i="ppe7">Officier général commandant une armée</li>
+            <li data-i="ppe8">Dirigeant d'une entreprise publique</li>
+            <li data-i="ppe9">Dirigeant d'une organisation internationale créée par traité</li>
+          </ol>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2 class="sec" data-i="sec_be">Bénéficiaires effectifs</h2>
+      <p class="hint" data-i="hint_be">Toute personne physique détenant directement ou indirectement plus de 25 % du capital ou des droits de vote, ou exerçant un pouvoir de contrôle (art. L.561-2-2 CMF).</p>
+      <div id="beList"></div>
+      <button class="add-btn" onclick="addBE()" data-i="be_add">+ Ajouter un bénéficiaire effectif</button>
+    </div>
+
+    <div class="card">
+      <h2 class="sec" data-i="sec_sanc">Sanctions & gel des avoirs</h2>
+      <label class="consent"><input type="checkbox" id="sanction">
+        <span data-i="sanc_txt">J'atteste ne faire l'objet d'aucune mesure restrictive ni gel des avoirs, et m'engage à signaler sans délai toute modification de ma situation.</span>
+      </label>
+      <p class="err-msg" id="err1" role="alert"></p>
+    </div>
+
+    <div class="nav">
+      <button class="btn-ghost" onclick="prev()" data-i="back">Retour</button>
+      <div class="spacer"></div>
+      <button class="btn-next" onclick="next()" data-i="next">Continuer
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ÉTAPE LCB-FT (domiciliation uniquement) — contenu rendu par renderLCB() -->
+  <section class="panel" id="plcb" aria-label="Fiche LCB-FT">
+    <div id="lcbBody"></div>
+    <p class="err-msg" id="errlcb" role="alert"></p>
+    <div class="nav">
+      <button class="btn-ghost" onclick="prev()" data-i="back">Retour</button>
+      <div class="spacer"></div>
+      <button class="btn-next" onclick="next()" data-i="next">Continuer
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ÉTAPE 3 : PIÈCES -->
+  <section class="panel" id="p2" aria-labelledby="st2">
+    <div class="card">
+      <h2 class="sec" data-i="sec_docs">Pièces à fournir</h2>
+      <div class="dprog">
+        <div class="cnt" aria-live="polite"><b id="docDone">0</b><span id="docTot">/0</span> <span data-i="docs_given">pièces jointes</span></div>
+        <div class="hint" style="margin:0" data-i="docs_recent">Les documents « moins de 3 mois » doivent être récents.</div>
+      </div>
+      <div id="docList"></div>
+      <p class="hint" id="noEtr" style="margin-top:8px"></p>
+    </div>
+    <div class="nav">
+      <button class="btn-ghost" onclick="prev()" data-i="back">Retour</button>
+      <div class="spacer"></div>
+      <button class="btn-next" onclick="next()" data-i="next">Continuer
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ÉTAPE 4 : RÉCAP -->
+  <section class="panel" id="p3" aria-labelledby="st3">
+    <div id="recapWrap">
+      <div class="card">
+        <h2 class="sec" data-i="sec_recap">Récapitulatif</h2>
+        <div class="recap" id="recap"></div>
+      </div>
+      <div class="card">
+        <label class="consent"><input type="checkbox" id="rgpd" onchange="checkSend()">
+          <span data-i="rgpd_txt">J'autorise The Bureau à traiter ces informations et documents dans le cadre de mes obligations LCB-FT et de mon entrée en relation, conformément au RGPD.</span>
+        </label>
+        <p class="err-msg" id="err3" role="alert"></p>
+      </div>
+      <div class="nav">
+        <button class="btn-ghost" onclick="prev()" data-i="back">Retour</button>
+        <div class="spacer"></div>
+        <button class="btn-send" id="sendBtn" onclick="submitDossier()" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span data-i="send">Envoyer mon dossier</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="card success" id="successCard" style="display:none">
+      <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+      <h2 data-i="ok_title">Dossier <b>transmis</b></h2>
+      <p data-i="ok_txt">Merci. Vos documents ont bien été transmis à l'équipe The Bureau. Vous recevrez une confirmation par email.</p>
+    </div>
+  </section>
+
+  <div class="foot-wrap">
+    <img class="foot-chevron" src="chevrons-gold.svg" alt="" aria-hidden="true">
+    <p class="foot" data-i="footer">The Bureau · Dossier d'entrée — données chiffrées en transit</p>
+  </div>
+</main>
+
+<script>
+/* ============================================================
+   CONFIG BACKEND — à renseigner pour la mise en production
+   Laisser ENDPOINT vide => mode démo (aucun envoi réel).
+   Phase 1 : URL du Web App Google Apps Script (doPost).
+============================================================ */
+const CONFIG = {
+  ENDPOINT: '',                          // ex: 'https://script.google.com/macros/s/AKfy.../exec'
+  CENTRE_EMAIL: 'accueil@thebureau.paris',// notifié à l'arrivée d'un dossier
+  GOOGLE_PLACES_KEY: ''                  // clé Google Maps/Places : active la saisie d'adresse assistée (vide = champs manuels)
+};
+
+/* ===== View Transitions (core.js) ===== */
+function withVT(fn){ if(document.startViewTransition){ try{ document.startViewTransition(fn); }catch(e){ fn(); } } else { fn(); } }
+
+/* ===== Thème (bascule jour/nuit avec picto soleil/lune) ===== */
+const ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const ICON_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+function setThemeIcon(){ const b=document.getElementById('darkToggle'); if(b) b.innerHTML=document.body.classList.contains('dark')?ICON_SUN:ICON_MOON; }
+function toggleTheme(){ withVT(()=>{ document.body.classList.toggle('dark'); setThemeIcon(); }); }
+
+/* ============================================================
+   MODÈLE — pièces requises (issu de l'Annexe 2)
+============================================================ */
+const CENTRES = [
+  {id:'I',   nom:'The Bureau I — Cours Albert 1er', adr:'28, Cours Albert 1er, 75008 Paris'},
+  {id:'II',  nom:'The Bureau II — Champs-Élysées',  adr:'16, Cours Albert 1er, 75008 Paris'},
+  {id:'III', nom:'The Bureau III — Opéra',          adr:'25, Rue du 4 Septembre, 75002 Paris'},
+  {id:'IV',  nom:'The Bureau IV — Bourse',          adr:'42, Rue Notre-Dame des Victoires, 75002 Paris'}
+];
+const ENTITIES = {
+  societe:  {fr:'Société (civile ou commerciale)', en:'Company (civil or commercial)', dfr:'SAS, SARL, SCI, SA…', den:'SAS, SARL, SCI, SA…'},
+  eirl:     {fr:'EIRL', en:'EIRL (sole trader)', dfr:'Entrepreneur individuel à responsabilité limitée', den:'Limited-liability sole trader'},
+  agent:    {fr:'Agent commercial', en:'Commercial agent', dfr:'Inscrit au RSAC', den:'Registered on the RSAC'},
+  asso:     {fr:'Fonds de dotation / Fondation / Association', en:'Endowment fund / Foundation / Association', dfr:'Y compris reconnues d\'utilité publique', den:'Including public-interest bodies'}
+};
+
+/* Catalogue de documents : id -> libellés + badges */
+const DOC = {
+  cni:        {fr:'Pièce d\'identité du représentant légal en cours de validité', en:'Valid ID of the legal representative', b:['req']},
+  cni_dir:    {fr:'Pièce d\'identité du dirigeant en cours de validité', en:'Valid ID of the company director', b:['req']},
+  cni_fond:   {fr:'Pièce d\'identité du/des fondateur(s)', en:'Valid ID of the founder(s)', b:['req']},
+  kbis:       {fr:'Extrait Kbis', en:'Kbis extract', b:['req','recent']},
+  rseirl:     {fr:'Extrait du Registre Spécial des EIRL (RSEIRL)', en:'RSEIRL register extract', b:['req','recent']},
+  rsac:       {fr:'Extrait du Registre Spécial des Agents Commerciaux (RSAC)', en:'RSAC register extract', b:['req','recent']},
+  recepisse:  {fr:'Récépissé de déclaration', en:'Declaration receipt', b:['req']},
+  recep_asso: {fr:'Récépissé de déclaration de création', en:'Creation declaration receipt', b:['req']},
+  jo:         {fr:'Extrait du Journal Officiel (déclaration)', en:'Official Journal extract (declaration)', b:['req']},
+  rib:        {fr:'Relevé d\'identité bancaire (RIB)', en:'Bank account details (RIB)', b:['req']},
+  etranger:   {fr:'Document de validité juridique (siège à l\'étranger)', en:'Legal-validity document (foreign head office)', b:['cond']},
+  jdom_rl:    {fr:'Justificatif de domicile du représentant légal', en:'Proof of address of the legal representative', b:['req','recent']},
+  jdom_fond:  {fr:'Justificatif de domicile du/des fondateur(s)', en:'Proof of address of the founder(s)', b:['req','recent']},
+  lieux:      {fr:'Justificatif de chaque lieu d\'activité', en:'Proof of each place of business', b:['req']},
+  statuts:    {fr:'Statuts à jour de la structure', en:'Up-to-date articles of association', b:['req']},
+  capital:    {fr:'Composition du capital social', en:'Breakdown of share capital', b:['req']},
+  pv_nom:     {fr:'PV de nomination des dirigeants', en:'Minutes appointing the directors', b:['req']},
+  pouvoirs:   {fr:'Pouvoirs des mandataires (PV d\'assemblée)', en:'Powers of the representatives', b:['req']}
+};
+
+/* Listes par type × domiciliation. 'etranger'/'rna' = conditionnels (ajoutés via toggles) */
+/* NB : téléphone et SIREN/SIRET/TVA ne sont PAS des pièces jointes —
+   ils sont saisis comme champs à l'étape 1 « Identité ». */
+const REQS = {
+  societe: {
+    non: ['cni_dir','kbis','rib'],
+    oui: ['cni','jdom_rl','lieux','kbis','statuts','capital','pv_nom','pouvoirs','rib']
+  },
+  eirl: {
+    non: ['cni','rseirl','recepisse','rib'],
+    oui: ['cni','jdom_rl','lieux','rseirl','recepisse','statuts','rib']
+  },
+  agent: {
+    non: ['cni','rsac','recepisse','rib'],
+    oui: ['cni','jdom_rl','lieux','rsac','recepisse','rib']
+  },
+  asso: {
+    non: ['recep_asso','jo','cni_fond','rib'],
+    oui: ['cni_fond','jdom_fond','lieux','recep_asso','jo','statuts','rib']
+  }
+};
+
+/* ===== État ===== */
+const state = { lang:'fr', dom:false, entity:'societe', etranger:false, loi1901:false, idx:0, files:{}, bes:[], lcb:{} };
+
+/* ============================================================
+   i18n
+============================================================ */
+const I18N = {
+  skip:{fr:'Aller au contenu',en:'Skip to content'},
+  eyebrow:{fr:'Conformité réglementaire — LCB-FT',en:'Regulatory compliance — AML/CFT'},
+  title:{fr:'Votre <b>dossier d\'entrée</b>',en:'Your <b>onboarding file</b>'},
+  subtitle:{fr:'Pour finaliser votre installation, la réglementation (LCB-FT) et votre contrat nous demandent quelques informations et pièces. <b>Une fois votre dossier complet, c\'est réglé</b> — vous n\'aurez plus à y revenir. Vos données sont transmises de façon sécurisée à The Bureau.',en:'To complete your move-in, regulations (AML/CFT) and your contract require a few details and documents. <b>Once your file is complete, it\'s done</b> — no need to come back to it. Your data is securely transmitted to The Bureau.'},
+  s1:{fr:'Votre structure',en:'Your entity'},s2:{fr:'Déclarations',en:'Declarations'},s3:{fr:'Pièces à fournir',en:'Documents'},s4:{fr:'Récapitulatif',en:'Summary'},
+  sec_centre:{fr:'Centre de rattachement',en:'Your centre'},
+  hint_centre:{fr:'Sélectionnez le centre The Bureau auprès duquel vous vous installez.',en:'Select the The Bureau centre where you are setting up.'},
+  centre_ph:{fr:'Sélectionnez votre centre…',en:'Select your centre…'},
+  err_centre:{fr:'Merci de sélectionner votre centre de rattachement.',en:'Please select your centre.'},
+  r_centre:{fr:'Centre',en:'Centre'},
+  sec_dom:{fr:'Domiciliation',en:'Registered-office service'},
+  hint_dom:{fr:'The Bureau assure-t-il la domiciliation de votre siège social ? La liste des pièces s\'adapte à votre réponse.',en:'Does The Bureau host your registered office? The document list adapts to your answer.'},
+  dom_non:{fr:'Sans domiciliation',en:'Without domiciliation'},dom_oui:{fr:'Avec domiciliation',en:'With domiciliation'},
+  sec_type:{fr:'Type de structure',en:'Type of entity'},
+  etr1:{fr:'Siège social à l\'étranger',en:'Head office abroad'},etr2:{fr:' · ajoute un justificatif de validité juridique',en:' · adds a legal-validity document'},
+  loi1:{fr:'Association loi 1901',en:'Law-1901 association'},loi2:{fr:' · ajoute le n° RNA',en:' · adds the RNA number'},
+  sec_ident:{fr:'Identité de la structure',en:'Entity identity'},
+  f_raison:{fr:'Dénomination sociale <span class="req">*</span>',en:'Legal name <span class="req">*</span>'},
+  f_forme:{fr:'Forme juridique <span class="req">*</span>',en:'Legal form <span class="req">*</span>'},f_siren:{fr:'N° SIREN <span class="req">*</span>',en:'SIREN no. <span class="req">*</span>'},f_siret:{fr:'N° SIRET <span class="req">*</span>',en:'SIRET no. <span class="req">*</span>'},f_tva:{fr:'N° TVA <span class="req">*</span>',en:'VAT no. <span class="req">*</span>'},
+  forme_ph:{fr:'Sélectionnez…',en:'Select…'},forme_autre:{fr:'Autre',en:'Other'},
+  f_rna:{fr:'N° RNA — Répertoire National des Associations',en:'RNA number — national associations register'},
+  sec_rl:{fr:'Représentant légal',en:'Legal representative'},
+  f_prenom:{fr:'Prénom <span class="req">*</span>',en:'First name <span class="req">*</span>'},f_nom:{fr:'Nom <span class="req">*</span>',en:'Last name <span class="req">*</span>'},
+  f_email:{fr:'Email <span class="req">*</span>',en:'Email <span class="req">*</span>'},f_tel:{fr:'Téléphone <span class="req">*</span>',en:'Phone <span class="req">*</span>'},
+  next:{fr:'Continuer',en:'Continue'},back:{fr:'Retour',en:'Back'},send:{fr:'Envoyer mon dossier',en:'Submit my file'},
+  sec_ppe:{fr:'Personnes politiquement exposées (PPE)',en:'Politically exposed persons (PEP)'},
+  hint_ppe:{fr:'Au titre des articles L.561-10 et R.561-18 du Code monétaire et financier.',en:'Under articles L.561-10 and R.561-18 of the French Monetary and Financial Code.'},
+  ppe_non:{fr:'Je ne suis pas une PPE',en:'I am not a PEP'},ppe_non_d:{fr:'Ni directement, ni par assimilation (conjoint, enfants, ascendants…).',en:'Neither directly nor by association (spouse, children, parents…).'},
+  ppe_oui:{fr:'Je suis une PPE',en:'I am a PEP'},ppe_oui_d:{fr:'Directement ou par assimilation. Un échange complémentaire vous sera proposé.',en:'Directly or by association. We will follow up with you.'},
+  ppe_more:{fr:'Qu\'est-ce qu\'une PPE ?',en:'What is a PEP?'},
+  ppe_intro:{fr:'Personne exerçant ou ayant cessé depuis moins d\'un an l\'une des fonctions :',en:'A person holding, or having held in the past year, one of these roles:'},
+  ppe1:{fr:'Chef d\'État, de gouvernement, membre d\'un gouvernement ou de la Commission européenne',en:'Head of state/government, government or EU Commission member'},
+  ppe2:{fr:'Membre d\'une assemblée parlementaire, dirigeant de parti politique',en:'Member of a parliament, leader of a political party'},
+  ppe3:{fr:'Membre d\'une cour suprême, constitutionnelle ou haute juridiction',en:'Member of a supreme/constitutional/high court'},
+  ppe4:{fr:'Membre d\'une cour des comptes',en:'Member of a court of auditors'},
+  ppe5:{fr:'Dirigeant d\'une banque centrale',en:'Central bank executive'},
+  ppe6:{fr:'Ambassadeur ou chargé d\'affaires',en:'Ambassador or chargé d\'affaires'},
+  ppe7:{fr:'Officier général commandant une armée',en:'General officer commanding armed forces'},
+  ppe8:{fr:'Dirigeant d\'une entreprise publique',en:'Executive of a public undertaking'},
+  ppe9:{fr:'Dirigeant d\'une organisation internationale créée par traité',en:'Executive of a treaty-based international organisation'},
+  sec_be:{fr:'Bénéficiaires effectifs',en:'Beneficial owners'},
+  hint_be:{fr:'Toute personne physique détenant directement ou indirectement plus de 25 % du capital ou des droits de vote, ou exerçant un pouvoir de contrôle (art. L.561-2-2 CMF).',en:'Any individual holding, directly or indirectly, more than 25% of capital or voting rights, or exercising control (art. L.561-2-2).'},
+  be_add:{fr:'+ Ajouter un bénéficiaire effectif',en:'+ Add a beneficial owner'},
+  be_prenom:{fr:'Prénom',en:'First name'},be_nom:{fr:'Nom',en:'Last name'},be_dom:{fr:'Domicile',en:'Address'},be_pct:{fr:'% détention',en:'% held'},be_tel:{fr:'Téléphone',en:'Phone'},be_email:{fr:'Email',en:'Email'},
+  s_lcb:{fr:'Fiche LCB-FT',en:'AML/CFT form'},
+  err_lcb:{fr:'Merci de répondre à l\'ensemble des champs de la fiche (réponses requises pour tous).',en:'Please answer every field of the form (all answers are required).'},
+  r_lcb:{fr:'Fiche LCB-FT',en:'AML/CFT form'},r_done:{fr:'Complétée',en:'Completed'},
+  sec_sanc:{fr:'Sanctions & gel des avoirs',en:'Sanctions & asset freeze'},
+  sanc_txt:{fr:'J\'atteste ne faire l\'objet d\'aucune mesure restrictive ni gel des avoirs, et m\'engage à signaler sans délai toute modification de ma situation.',en:'I declare that I am subject to no restrictive measure or asset freeze, and undertake to report any change without delay.'},
+  sec_docs:{fr:'Pièces à fournir',en:'Required documents'},
+  docs_given:{fr:'pièces jointes',en:'documents attached'},
+  docs_recent:{fr:'Les documents « moins de 3 mois » doivent être récents.',en:'Documents marked “< 3 months” must be recent.'},
+  sec_recap:{fr:'Récapitulatif',en:'Summary'},
+  rgpd_txt:{fr:'J\'autorise The Bureau à traiter ces informations et documents dans le cadre de mes obligations LCB-FT et de mon entrée en relation, conformément au RGPD.',en:'I authorise The Bureau to process this information and these documents for AML/CFT and onboarding purposes, in accordance with the GDPR.'},
+  ok_title:{fr:'Dossier <b>transmis</b>',en:'File <b>submitted</b>'},
+  ok_txt:{fr:'Merci. Vos documents ont bien été transmis à l\'équipe The Bureau. Vous recevrez une confirmation par email.',en:'Thank you. Your documents have been sent to The Bureau team. You will receive an email confirmation.'},
+  footer:{fr:'The Bureau · Dossier d\'entrée — données chiffrées en transit',en:'The Bureau · Onboarding file — data encrypted in transit'},
+  recent_badge:{fr:'< 3 mois',en:'< 3 months'},req_badge:{fr:'Requis',en:'Required'},cond_badge:{fr:'Selon cas',en:'If applicable'},
+  upload:{fr:'Joindre',en:'Attach'},replace:{fr:'Remplacer',en:'Replace'},
+  err_ident:{fr:'Merci de renseigner tous les champs obligatoires, dont un email valide.',en:'Please fill in all required fields, including a valid email.'},
+  err_sanc:{fr:'Merci de cocher l\'attestation sanctions & gel des avoirs.',en:'Please tick the sanctions & asset-freeze declaration.'},
+  err_rgpd:{fr:'Merci d\'accepter le traitement RGPD pour envoyer votre dossier.',en:'Please accept GDPR processing to submit your file.'},
+  r_dom:{fr:'Domiciliation',en:'Domiciliation'},r_yes:{fr:'Avec',en:'Yes'},r_no:{fr:'Sans',en:'No'},
+  r_type:{fr:'Type de structure',en:'Entity type'},r_struct:{fr:'Structure',en:'Entity'},r_rl:{fr:'Représentant légal',en:'Legal representative'},
+  r_ppe:{fr:'Statut PPE',en:'PEP status'},r_be:{fr:'Bénéficiaires effectifs',en:'Beneficial owners'},
+  r_docs:{fr:'Pièces jointes',en:'Documents attached'},r_missing:{fr:'manquante(s)',en:'missing'}
+};
+function t(k){ const e=I18N[k]; return e? e[state.lang]||e.fr : k; }
+
+/* ============================================================
+   Rendu
+============================================================ */
+function applyLang(){
+  document.documentElement.lang=state.lang;
+  document.querySelectorAll('[data-i]').forEach(el=>{ const k=el.getAttribute('data-i'); if(I18N[k]) el.innerHTML=I18N[k][state.lang]; });
+  renderEntities(); renderDocs(); renderBELabels(); renderStepper(); updateAsso(); renderCentres(); if(state.dom) renderLCB();
+}
+function setLang(l){ state.lang=l; document.querySelectorAll('.lang-toggle button').forEach(b=>b.classList.toggle('on',b.dataset.lang===l)); withVT(applyLang); }
+
+function renderEntities(){
+  const wrap=document.getElementById('entityCards');
+  wrap.innerHTML=Object.entries(ENTITIES).map(([id,e])=>`
+    <label class="ec">
+      <input type="radio" name="entity" value="${id}" ${state.entity===id?'checked':''} onchange="setEntity('${id}')">
+      <span class="dot"></span>
+      <span><span class="et">${e[state.lang]}</span><span class="ed">${state.lang==='en'?e.den:e.dfr}</span></span>
+    </label>`).join('');
+}
+function setEntity(id){ state.entity=id; document.getElementById('loiRow').style.display=(id==='asso')?'flex':'none'; if(id!=='asso'){state.loi1901=false;document.getElementById('loi1901').checked=false;document.getElementById('loiSw').classList.remove('on');} updateRnaRow(); updateAsso(); renderDocs(); }
+function updateRnaRow(){ const r=document.getElementById('rnaRow'); if(r) r.style.display=(state.entity==='asso'&&state.loi1901)?'block':'none'; }
+/* SIRET/TVA facultatifs pour les associations : masque l'astérisque */
+function updateAsso(){ const opt=state.entity==='asso'; ['siret','tva'].forEach(id=>{ const s=document.querySelector('label[for='+id+'] .req'); if(s) s.style.display=opt?'none':'inline'; }); }
+
+function renderCentres(){
+  const sel=document.getElementById('centre'); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML=`<option value="">${t('centre_ph')}</option>`+CENTRES.map(c=>`<option value="${c.id}" ${cur===c.id?'selected':''}>${c.nom}</option>`).join('');
+  updateCentre();
+}
+function updateCentre(){
+  const sel=document.getElementById('centre'); const box=document.getElementById('centreAdr');
+  const c=CENTRES.find(x=>x.id===sel.value);
+  if(c){ box.textContent='📍 '+c.adr; box.style.display='block'; } else box.style.display='none';
+}
+function setDom(v){ state.dom=v; document.getElementById('domOui').classList.toggle('on',v); document.getElementById('domNon').classList.toggle('on',!v); renderDocs(); renderStepper(); }
+function toggleEtr(){ state.etranger=document.getElementById('etranger').checked; document.getElementById('etrSw').classList.toggle('on',state.etranger); renderDocs(); }
+function toggleLoi(){ state.loi1901=document.getElementById('loi1901').checked; document.getElementById('loiSw').classList.toggle('on',state.loi1901); updateRnaRow(); renderDocs(); }
+
+function currentDocIds(){
+  let ids=[...REQS[state.entity][state.dom?'oui':'non']];
+  if(state.etranger && !ids.includes('etranger')) ids.splice(ids.length-1,0,'etranger');
+  return ids;
+}
+function badge(b){ if(b==='req') return `<span class="badge req">${t('req_badge')}</span>`; if(b==='recent') return `<span class="badge recent">${t('recent_badge')}</span>`; if(b==='cond') return `<span class="badge cond">${t('cond_badge')}</span>`; return ''; }
+
+/* Renommage normalisé des pièces : DENOMINATION_[PRENOMetNOM_]NOMDOCUMENT.ext */
+const DOC_FILE={cni:'PieceIdentite',cni_dir:'PieceIdentite',cni_fond:'PieceIdentite',kbis:'Kbis',rseirl:'ExtraitRSEIRL',rsac:'ExtraitRSAC',recepisse:'RecepisseDeclaration',recep_asso:'RecepisseCreation',jo:'JournalOfficiel',rib:'RIB',etranger:'ValiditeJuridiqueEtranger',jdom_rl:'JustificatifDomicile',jdom_fond:'JustificatifDomicile',lieux:'JustificatifLieuActivite',statuts:'Statuts',capital:'CompositionCapital',pv_nom:'PVNomination',pouvoirs:'PouvoirsMandataires'};
+const PERSON_DOCS=['cni','cni_dir','cni_fond','jdom_rl','jdom_fond'];
+function sanitizeName(s){ return (s||'').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]/g,'').toUpperCase(); }
+function fmtFileName(id,original){
+  const ext=(original&&original.indexOf('.')>=0)?original.slice(original.lastIndexOf('.')):'';
+  const parts=[sanitizeName(val('raison'))||'DOSSIER'];
+  if(PERSON_DOCS.includes(id)){ const p=sanitizeName(val('rlprenom'))+'et'+sanitizeName(val('rlnom')); if(p!=='et') parts.push(p); }
+  parts.push(DOC_FILE[id]||'Document');
+  return parts.join('_')+ext;
+}
+function renderDocs(){
+  const ids=currentDocIds(); const list=document.getElementById('docList');
+  list.innerHTML=ids.map(id=>{
+    const d=DOC[id]; const f=state.files[id];
+    return `<div class="doc ${f?'filled':''}" id="doc_${id}">
+      <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+      <span class="dinfo">
+        <span class="dname">${d[state.lang]}</span>
+        <span class="dbadges">${(d.b||[]).map(badge).join('')}</span>
+        ${f?`<span class="dfile">📎 ${fmtFileName(id,f.name)}</span>`:''}
+      </span>
+      <span class="up"><label for="file_${id}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        ${f?t('replace'):t('upload')}</label>
+        <input type="file" id="file_${id}" accept="image/*,.pdf,.doc,.docx" onchange="onFile('${id}',this)"></span>
+    </div>`;
+  }).join('');
+  const done=ids.filter(id=>state.files[id]).length;
+  document.getElementById('docDone').textContent=done;
+  document.getElementById('docTot').textContent='/'+ids.length;
+}
+function onFile(id,inp){ const f=inp.files[0]; if(f){ state.files[id]={name:f.name,size:f.size,type:f.type,blob:f}; } renderDocs(); }
+
+/* Bénéficiaires effectifs */
+function addBE(){ state.bes.push({prenom:'',nom:'',rue:'',cp:'',ville:'',pays:'',pct:'',tel:'',email:''}); renderBE(); }
+function rmBE(i){ state.bes.splice(i,1); renderBE(); }
+function renderBE(){
+  document.getElementById('beList').innerHTML=state.bes.map((b,i)=>`
+    <div class="be">
+      <button class="rm" onclick="rmBE(${i})" aria-label="Supprimer">&times;</button>
+      <div class="row2">
+        <div class="fg"><label class="fl">${t('be_prenom')}</label><input class="finp" value="${b.prenom||''}" oninput="state.bes[${i}].prenom=this.value"></div>
+        <div class="fg"><label class="fl">${t('be_nom')}</label><input class="finp" value="${b.nom||''}" oninput="state.bes[${i}].nom=this.value"></div>
+      </div>
+      <div class="fg"><label class="fl">${t('be_dom')}</label>
+        <input class="finp" data-gplaces="be:${i}" autocomplete="off" placeholder="${L(LCBT.addr_rue)}" value="${b.rue||''}" oninput="state.bes[${i}].rue=this.value">
+        <div class="row3" style="margin-top:10px">
+          <input class="finp" placeholder="${L(LCBT.addr_cp)}" value="${b.cp||''}" oninput="state.bes[${i}].cp=this.value" inputmode="numeric">
+          <input class="finp" placeholder="${L(LCBT.addr_ville)}" value="${b.ville||''}" oninput="state.bes[${i}].ville=this.value">
+          <input class="finp" placeholder="${L(LCBT.addr_pays)}" value="${b.pays||''}" oninput="state.bes[${i}].pays=this.value">
+        </div>
+        ${CONFIG.GOOGLE_PLACES_KEY?`<div class="ahint">📍 ${L(LCBT.addr_g)}</div>`:''}
+      </div>
+      <div class="row3">
+        <div class="fg"><label class="fl">${t('be_pct')}</label><input class="finp" inputmode="numeric" value="${b.pct||''}" oninput="state.bes[${i}].pct=this.value"></div>
+        <div class="fg"><label class="fl">${t('be_tel')}</label><input class="finp" type="tel" value="${b.tel||''}" oninput="state.bes[${i}].tel=this.value"></div>
+        <div class="fg"><label class="fl">${t('be_email')}</label><input class="finp" type="email" value="${b.email||''}" oninput="state.bes[${i}].email=this.value"></div>
+      </div>
+    </div>`).join('');
+  initGooglePlaces(); attachPlaces();
+}
+function renderBELabels(){ if(state.bes.length) renderBE(); }
+
+/* ============================================================
+   FICHE LCB-FT (Annexe 3) — domiciliation uniquement
+============================================================ */
+/* Annexe 3.2 — liste des pays à vigilance renforcée */
+const PAYS_RISQUE=[
+  {n:'Afghanistan',c:'AF'},{n:'Afrique du Sud',c:'ZA'},{n:'Algérie',c:'DZ'},{n:'Angola',c:'AO'},{n:'Biélorussie',c:'BY'},{n:'Bolivie',c:'BO'},{n:'Bulgarie',c:'BG'},{n:'Burkina Faso',c:'BF'},{n:'Burundi',c:'BI'},{n:'Cameroun',c:'CM'},{n:'Corée du Nord',c:'KP'},{n:'Côte d\'Ivoire',c:'CI'},{n:'Guatemala',c:'GT'},{n:'Guinée',c:'GN'},{n:'Guinée-Bissau',c:'GW'},{n:'Haïti',c:'HT'},{n:'Îles Vierges (Royaume-Uni)',c:'VG'},{n:'Iran',c:'IR'},{n:'Iraq',c:'IQ'},{n:'Kenya',c:'KE'},{n:'Laos',c:'LA'},{n:'Liban',c:'LB'},{n:'Libye',c:'LY'},{n:'Mali',c:'ML'},{n:'Moldavie',c:'MD'},{n:'Monaco',c:'MC'},{n:'Mozambique',c:'MZ'},{n:'Myanmar',c:'MM'},{n:'Namibie',c:'NA'},{n:'Népal',c:'NP'},{n:'Nicaragua',c:'NI'},{n:'Niger',c:'NE'},{n:'Nigeria',c:'NG'},{n:'République Centrafricaine',c:'CF'},{n:'République démocratique du Congo',c:'CD'},{n:'Russie',c:'RU'},{n:'Somalie',c:'SO'},{n:'Soudan',c:'SD'},{n:'Soudan du Sud',c:'SS'},{n:'Syrie',c:'SY'},{n:'Tanzanie',c:'TZ'},{n:'Trinité-et-Tobago',c:'TT'},{n:'Tunisie',c:'TN'},{n:'Turquie',c:'TR'},{n:'Vanuatu',c:'VU'},{n:'Venezuela',c:'VE'},{n:'Vietnam',c:'VN'},{n:'Yémen',c:'YE'},{n:'Zimbabwe',c:'ZW'}
+];
+const SECTEURS=['Location de voitures','BTP','Sociétés de surveillance','Formation','Informatique','Travaux à domicile','Cartes prépayées','Téléphonie','Annuaires professionnels','Gardiennage'];
+
+/* Drapeau en IMAGE (les emojis drapeaux ne s'affichent pas sous Windows) */
+function flagImg(iso){ const c=(iso||'').toLowerCase(); return `<img class="flag" src="https://flagcdn.com/20x15/${c}.png" srcset="https://flagcdn.com/40x30/${c}.png 2x" width="18" alt="" loading="lazy">`; }
+/* Liste mondiale (nom FR + ISO-2) pour l'autocomplétion pays */
+const WORLD=[['Afghanistan','AF'],['Afrique du Sud','ZA'],['Albanie','AL'],['Algérie','DZ'],['Allemagne','DE'],['Andorre','AD'],['Angola','AO'],['Antigua-et-Barbuda','AG'],['Arabie saoudite','SA'],['Argentine','AR'],['Arménie','AM'],['Australie','AU'],['Autriche','AT'],['Azerbaïdjan','AZ'],['Bahamas','BS'],['Bahreïn','BH'],['Bangladesh','BD'],['Barbade','BB'],['Belgique','BE'],['Belize','BZ'],['Bénin','BJ'],['Bhoutan','BT'],['Biélorussie','BY'],['Birmanie (Myanmar)','MM'],['Bolivie','BO'],['Bosnie-Herzégovine','BA'],['Botswana','BW'],['Brésil','BR'],['Brunei','BN'],['Bulgarie','BG'],['Burkina Faso','BF'],['Burundi','BI'],['Cambodge','KH'],['Cameroun','CM'],['Canada','CA'],['Cap-Vert','CV'],['Chili','CL'],['Chine','CN'],['Chypre','CY'],['Colombie','CO'],['Comores','KM'],['Congo','CG'],['Congo (RDC)','CD'],['Corée du Nord','KP'],['Corée du Sud','KR'],['Costa Rica','CR'],['Côte d\'Ivoire','CI'],['Croatie','HR'],['Cuba','CU'],['Danemark','DK'],['Djibouti','DJ'],['Dominique','DM'],['Égypte','EG'],['Émirats arabes unis','AE'],['Équateur','EC'],['Érythrée','ER'],['Espagne','ES'],['Estonie','EE'],['Eswatini','SZ'],['États-Unis','US'],['Éthiopie','ET'],['Fidji','FJ'],['Finlande','FI'],['France','FR'],['Gabon','GA'],['Gambie','GM'],['Géorgie','GE'],['Ghana','GH'],['Grèce','GR'],['Grenade','GD'],['Guatemala','GT'],['Guinée','GN'],['Guinée-Bissau','GW'],['Guinée équatoriale','GQ'],['Guyana','GY'],['Haïti','HT'],['Honduras','HN'],['Hongrie','HU'],['Îles Marshall','MH'],['Îles Salomon','SB'],['Inde','IN'],['Indonésie','ID'],['Irak','IQ'],['Iran','IR'],['Irlande','IE'],['Islande','IS'],['Israël','IL'],['Italie','IT'],['Jamaïque','JM'],['Japon','JP'],['Jordanie','JO'],['Kazakhstan','KZ'],['Kenya','KE'],['Kirghizistan','KG'],['Kiribati','KI'],['Koweït','KW'],['Laos','LA'],['Lesotho','LS'],['Lettonie','LV'],['Liban','LB'],['Liberia','LR'],['Libye','LY'],['Liechtenstein','LI'],['Lituanie','LT'],['Luxembourg','LU'],['Macédoine du Nord','MK'],['Madagascar','MG'],['Malaisie','MY'],['Malawi','MW'],['Maldives','MV'],['Mali','ML'],['Malte','MT'],['Maroc','MA'],['Maurice','MU'],['Mauritanie','MR'],['Mexique','MX'],['Micronésie','FM'],['Moldavie','MD'],['Monaco','MC'],['Mongolie','MN'],['Monténégro','ME'],['Mozambique','MZ'],['Namibie','NA'],['Nauru','NR'],['Népal','NP'],['Nicaragua','NI'],['Niger','NE'],['Nigeria','NG'],['Norvège','NO'],['Nouvelle-Zélande','NZ'],['Oman','OM'],['Ouganda','UG'],['Ouzbékistan','UZ'],['Pakistan','PK'],['Palaos','PW'],['Palestine','PS'],['Panama','PA'],['Papouasie-Nouvelle-Guinée','PG'],['Paraguay','PY'],['Pays-Bas','NL'],['Pérou','PE'],['Philippines','PH'],['Pologne','PL'],['Portugal','PT'],['Qatar','QA'],['République centrafricaine','CF'],['République dominicaine','DO'],['République tchèque','CZ'],['Roumanie','RO'],['Royaume-Uni','GB'],['Russie','RU'],['Rwanda','RW'],['Saint-Christophe-et-Niévès','KN'],['Sainte-Lucie','LC'],['Saint-Marin','SM'],['Saint-Vincent-et-les-Grenadines','VC'],['Salvador','SV'],['Samoa','WS'],['Sao Tomé-et-Principe','ST'],['Sénégal','SN'],['Serbie','RS'],['Seychelles','SC'],['Sierra Leone','SL'],['Singapour','SG'],['Slovaquie','SK'],['Slovénie','SI'],['Somalie','SO'],['Soudan','SD'],['Soudan du Sud','SS'],['Sri Lanka','LK'],['Suède','SE'],['Suisse','CH'],['Suriname','SR'],['Syrie','SY'],['Tadjikistan','TJ'],['Tanzanie','TZ'],['Tchad','TD'],['Thaïlande','TH'],['Timor oriental','TL'],['Togo','TG'],['Tonga','TO'],['Trinité-et-Tobago','TT'],['Tunisie','TN'],['Turkménistan','TM'],['Turquie','TR'],['Tuvalu','TV'],['Ukraine','UA'],['Uruguay','UY'],['Vanuatu','VU'],['Vatican','VA'],['Venezuela','VE'],['Vietnam','VN'],['Yémen','YE'],['Zambie','ZM'],['Zimbabwe','ZW']];
+
+/* Champs d'identité complémentaires exigés par la fiche */
+const LCB_IDENT=[
+  {id:'c_siege', k:'address', label:{fr:'Adresse du siège social',en:'Registered-office address'}},
+  {id:'c_capital',k:'text',label:{fr:'Capital social (€)',en:'Share capital (€)'}},
+  {id:'c_rcs',   k:'text', label:{fr:'N° d\'immatriculation au RCS (SIRET)',en:'Trade & companies register no. (SIRET)'}},
+  {id:'c_datecrea',k:'date',label:{fr:'Date de création de la société',en:'Date of incorporation'}},
+  {id:'c_rldom', k:'address', label:{fr:'Domicile du représentant légal',en:'Home address of legal representative'}},
+  {id:'c_compta',k:'textarea',label:{fr:'Lieu de conservation des documents comptables',en:'Where accounting records are kept'}}
+];
+
+/* Les 13 questions de la fiche */
+const LCB_Q=[
+  {id:'q1', q:{fr:'Le Membre est-il originaire ou a-t-il des liens avec l\'un des pays figurant à l\'annexe 3.2 ?',en:'Is the Member from, or linked to, one of the countries listed in annex 3.2?'},
+   info:{fr:'L\'origine géographique est un facteur de risque pris en compte au titre de la directive (UE) 2015/849 et des art. L.561-5 et L.561-6 du Code monétaire et financier (vigilance constante).',en:'Geographic origin is a risk factor under EU Directive 2015/849 and art. L.561-5 / L.561-6 of the French Monetary & Financial Code.'},
+   pays:true,
+   onYes:[{id:'q1_pays',k:'pays',label:{fr:'Quel pays ?',en:'Which country?'}},{id:'q1_liens',k:'text',label:{fr:'Quel type de liens ?',en:'What type of links?'}}]},
+  {id:'q2', q:{fr:'Le dirigeant est-il une Personne Politiquement Exposée (PPE) ?',en:'Is the director a Politically Exposed Person (PEP)?'},
+   info:{fr:'PPE : personne exerçant ou ayant exercé d\'importantes fonctions publiques, un membre direct de sa famille ou une personne qui lui est étroitement associée (art. L.561-10 et R.561-18 CMF).',en:'PEP: a person entrusted with prominent public functions, a close family member, or a known close associate (art. L.561-10 & R.561-18).'},
+   onYes:[{id:'q2_cat',k:'select',optionsKeys:['ppe1','ppe2','ppe3','ppe4','ppe5','ppe6','ppe7','ppe8','ppe9'],label:{fr:'À quelle catégorie de fonction appartient-il ?',en:'Which category of function applies?'}},
+          {id:'q2_det',k:'textarea',opt:true,label:{fr:'Précisez (facultatif)',en:'Details (optional)'}}]},
+  {id:'q3', q:{fr:'La société intervient-elle dans l\'un des secteurs suivants : location de voitures, BTP, surveillance, formation, informatique, travaux à domicile, cartes prépayées, téléphonie, annuaires professionnels, gardiennage ?',en:'Does the company operate in any of these sectors: car rental, construction, surveillance, training, IT, home works, prepaid cards, telephony, professional directories, security?'},
+   info:{fr:'Ces secteurs sont identifiés comme présentant un risque accru de blanchiment ; ils déclenchent une vigilance renforcée.',en:'These sectors carry a heightened money-laundering risk and trigger enhanced due diligence.'},
+   onYes:[{id:'q3_lequel',k:'secteur',label:{fr:'Lequel ?',en:'Which one?'}}],
+   onNo:[{id:'q3_autre',k:'text',label:{fr:'Dans quel secteur d\'activité intervenez-vous ?',en:'In which sector do you operate?'}}]},
+  {id:'q4', kind:'text', q:{fr:'Quel est le lieu d\'exercice de l\'activité ?',en:'Where is the activity carried out?'}},
+  {id:'q5', q:{fr:'Le dirigeant est-il gérant de plusieurs sociétés ?',en:'Is the director the manager of several companies?'},
+   onYes:[{id:'q5_lesquelles',k:'textarea',label:{fr:'Lesquelles ?',en:'Which ones?'}},
+          {id:'q5_tb',k:'yesno',label:{fr:'Certaines sont-elles domiciliées dans un centre The Bureau ?',en:'Are any domiciled in a The Bureau centre?'},
+           onYes:[{id:'q5_tb_which',k:'text',label:{fr:'Quelles sociétés ?',en:'Which companies?'}}]}]},
+  {id:'q6', q:{fr:'La société ou le dirigeant a-t-il fait l\'objet d\'une condamnation pour des infractions financières ?',en:'Has the company or director been convicted of financial offences?'},
+   onYes:[{id:'q6_nature',k:'textarea',label:{fr:'Quelle est la nature de la condamnation ?',en:'Nature of the conviction?'}}]},
+  {id:'q7', q:{fr:'Au cours des 12 derniers mois, votre société a-t-elle connu un changement de dirigeant ?',en:'In the past 12 months, has your company changed director?'},
+   onYes:[{id:'q7_ancien',k:'text',label:{fr:'Qui était l\'ancien dirigeant ?',en:'Who was the former director?'}},{id:'q7_pourquoi',k:'textarea',label:{fr:'Pourquoi a-t-il été remplacé ?',en:'Why were they replaced?'}}]},
+  {id:'q8', q:{fr:'Au cours des 12 derniers mois, les statuts ont-ils été modifiés ?',en:'In the past 12 months, were the articles amended?'},
+   onYes:[{id:'q8_quoi',k:'textarea',label:{fr:'Quelles modifications ont été opérées ?',en:'Which changes were made?'}}]},
+  {id:'q9', kind:'derived', q:{fr:'La société a-t-elle été créée il y a moins de 3 ans ?',en:'Was the company created less than 3 years ago?'}},
+  {id:'q10', kind:'ca', q:{fr:'Quel a été le chiffre d\'affaires de la société au cours des 3 dernières années ?',en:'What was the company\'s turnover over the past 3 years?'}},
+  {id:'q11', kind:'textarea', q:{fr:'Quelle est la typologie de vos principaux clients ?',en:'What is the profile of your main clients?'}},
+  {id:'q12', q:{fr:'Le paiement de nos services sera-t-il réalisé par une autre personne que le signataire du contrat ?',en:'Will payment be made by someone other than the contract signatory?'},
+   info:{fr:'Si oui, une fiche distincte devra être complétée avec les mêmes renseignements pour le tiers payeur.',en:'If yes, a separate form with the same details must be completed for the third-party payer.'},
+   onYes:[{id:'q12_entite',k:'text',label:{fr:'Par quelle entité ?',en:'By which entity?'}}]},
+  {id:'q13', q:{fr:'Votre paiement est-il en provenance d\'un pays étranger ?',en:'Is your payment coming from a foreign country?'},
+   onYes:[{id:'q13_pays',k:'country',label:{fr:'Lequel ?',en:'Which one?'}}]}
+];
+
+const LCBT={
+  title:{fr:'Fiche Client — Lutte anti-blanchiment',en:'Client form — Anti-money-laundering'},
+  intro:{fr:'Dans le cadre de nos obligations de lutte contre le blanchiment de capitaux et le financement du terrorisme (LCB-FT), nous sommes tenus de collecter les informations suivantes. <b>Une réponse est requise pour l\'ensemble des champs.</b> À défaut, The Bureau pourra refuser d\'entrer en relation ou mettre un terme au contrat.',
+        en:'As part of our anti-money-laundering and counter-terrorist-financing (AML/CFT) obligations, we must collect the following information. <b>An answer is required for every field.</b> Otherwise, The Bureau may decline or terminate the relationship.'},
+  law:{fr:'<b>Base légale :</b> art. L.561-2 et s. du Code monétaire et financier · obligation de vigilance (L.561-5, L.561-5-1, L.561-6) · identification du bénéficiaire effectif (L.561-2-2) · personnes politiquement exposées (L.561-10, R.561-18) · directive (UE) 2015/849.',
+       en:'<b>Legal basis:</b> art. L.561-2 ff. of the French Monetary & Financial Code · due-diligence duty (L.561-5, L.561-5-1, L.561-6) · beneficial-owner identification (L.561-2-2) · politically exposed persons (L.561-10, R.561-18) · EU Directive 2015/849.'},
+  ident:{fr:'Compléments d\'identité',en:'Identity details'},
+  quest:{fr:'Questionnaire',en:'Questionnaire'},
+  why:{fr:'Pourquoi cette question ?',en:'Why this question?'},
+  oui:{fr:'Oui',en:'Yes'},non:{fr:'Non',en:'No'},
+  paysList:{fr:'Voir la liste des pays (annexe 3.2)',en:'View the country list (annex 3.2)'},
+  paysPh:{fr:'Sélectionnez un pays…',en:'Select a country…'},autre:{fr:'Autre',en:'Other'},selectPh:{fr:'Sélectionnez…',en:'Select…'},
+  addr_rue:{fr:'N° et rue',en:'Street address'},addr_cp:{fr:'Code postal',en:'Postal code'},addr_ville:{fr:'Ville',en:'City'},addr_pays:{fr:'Pays',en:'Country'},
+  addr_g:{fr:'Commencez à taper puis sélectionnez une suggestion — l\'adresse se remplit automatiquement.',en:'Start typing and pick a suggestion — the address fills in automatically.'},
+  countryPh:{fr:'Tapez un pays (ex. « Fra » → France)…',en:'Type a country (e.g. “Fra” → France)…'},
+  derivedFromDate:{fr:'déduit automatiquement de la date de création',en:'auto-derived from the incorporation date'},
+  needDate:{fr:'Renseignez d\'abord la date de création ci-dessus.',en:'Please fill the incorporation date above first.'},
+  ca1:{fr:'Année N-1',en:'Year N-1'},ca2:{fr:'Année N-2',en:'Year N-2'},ca3:{fr:'Année N-3',en:'Year N-3'}
+};
+function L(o){ return o[state.lang]||o.fr; }
+
+function fieldHTML(f){
+  const v=state.lcb[f.id]||'';
+  if(f.k==='yesno') return yesnoHTML(f);
+  if(f.k==='textarea') return `<div class="fg"><label class="fl">${L(f.label)}${f.opt?'':' <span class="req">*</span>'}</label><textarea oninput="setLcb('${f.id}',this.value)">${v}</textarea></div>`;
+  if(f.k==='date') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" type="date" value="${v}" onchange="setLcbRender('${f.id}',this.value)"></div>`;
+  if(f.k==='country') return comboHTML(f,'world');
+  if(f.k==='address'){
+    const g=k=>state.lcb[f.id+'_'+k]||'';
+    return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label>
+      <input class="finp" id="${f.id}_rue" data-gplaces="${f.id}" autocomplete="off" placeholder="${L(LCBT.addr_rue)}" value="${g('rue')}" oninput="setLcb('${f.id}_rue',this.value)">
+      <div class="row3" style="margin-top:10px">
+        <input class="finp" placeholder="${L(LCBT.addr_cp)}" value="${g('cp')}" oninput="setLcb('${f.id}_cp',this.value)" inputmode="numeric">
+        <input class="finp" placeholder="${L(LCBT.addr_ville)}" value="${g('ville')}" oninput="setLcb('${f.id}_ville',this.value)">
+        <input class="finp" placeholder="${L(LCBT.addr_pays)}" value="${g('pays')}" oninput="setLcb('${f.id}_pays',this.value)">
+      </div>
+      ${CONFIG.GOOGLE_PLACES_KEY?`<div class="ahint">📍 ${L(LCBT.addr_g)}</div>`:''}</div>`;
+  }
+  if(f.k==='select'){ const opts=f.optionsKeys?f.optionsKeys.map(k=>({v:I18N[k].fr,t:t(k)})):(f.options||[]).map(o=>({v:o,t:o})); return `<div class="fg"><label class="fl">${L(f.label)}${f.opt?'':' <span class="req">*</span>'}</label><select class="fsel" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.selectPh)}</option>${opts.map(o=>`<option value="${o.v.replace(/"/g,'&quot;')}" ${v===o.v?'selected':''}>${o.t}</option>`).join('')}</select></div>`; }
+  if(f.k==='pays') return comboHTML(f,'risk');
+  if(f.k==='secteur'){ return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><select class="fsel" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.paysPh)}</option>${SECTEURS.map(s=>`<option ${v===s?'selected':''}>${s}</option>`).join('')}</select></div>`; }
+  return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" value="${v}" oninput="setLcb('${f.id}',this.value)"></div>`;
+}
+function yesnoHTML(q){
+  const ans=state.lcb[q.id];
+  let html=q.label?`<div class="fg" style="margin-bottom:6px"><label class="fl">${L(q.label)} <span class="req">*</span></label></div>`:'';
+  html+=`<div class="ynseg" role="group"><button type="button" data-v="oui" class="${ans==='oui'?'on':''}" onclick="setYN('${q.id}','oui')">${L(LCBT.oui)}</button><button type="button" data-v="non" class="${ans==='non'?'on':''}" onclick="setYN('${q.id}','non')">${L(LCBT.non)}</button></div>`;
+  if(ans==='oui'&&q.onYes) html+=`<div class="followup">${q.onYes.map(fieldHTML).join('')}</div>`;
+  if(ans==='non'&&q.onNo) html+=`<div class="followup">${q.onNo.map(fieldHTML).join('')}</div>`;
+  return html;
+}
+function questionHTML(q,i){
+  let body;
+  if(q.kind==='text') body=`<div class="followup" style="border:none;padding:0;margin-top:11px"><div class="fg" style="margin:0"><input class="finp" value="${state.lcb[q.id]||''}" oninput="setLcb('${q.id}',this.value)"></div></div>`;
+  else if(q.kind==='textarea') body=`<div class="followup" style="border:none;padding:0;margin-top:11px"><div class="fg" style="margin:0"><textarea oninput="setLcb('${q.id}',this.value)">${state.lcb[q.id]||''}</textarea></div></div>`;
+  else if(q.kind==='derived'){ const a=createdLessThan3y(); body=`<div class="followup" style="margin-top:11px;border-left-color:var(--or)">${a?`<div style="font-weight:600;font-size:13.5px">${a==='oui'?L(LCBT.oui):L(LCBT.non)} <span style="font-weight:400;color:var(--gris)">— ${L(LCBT.derivedFromDate)}</span></div>`:`<div class="ahint">${L(LCBT.needDate)}</div>`}</div>`; }
+  else if(q.kind==='ca') body=`<div class="followup" style="margin-top:11px"><div class="row3">
+      <div class="fg"><label class="fl">${L(LCBT.ca1)} <span class="req">*</span></label><input class="finp" value="${state.lcb.q10_n1||''}" oninput="setLcb('q10_n1',this.value)"></div>
+      <div class="fg"><label class="fl">${L(LCBT.ca2)} <span class="req">*</span></label><input class="finp" value="${state.lcb.q10_n2||''}" oninput="setLcb('q10_n2',this.value)"></div>
+      <div class="fg"><label class="fl">${L(LCBT.ca3)} <span class="req">*</span></label><input class="finp" value="${state.lcb.q10_n3||''}" oninput="setLcb('q10_n3',this.value)"></div></div></div>`;
+  else body=yesnoHTML(q);
+  const info=q.info?`<span class="qinfo" tabindex="0" role="note" aria-label="${L(LCBT.why)}">?<span class="qtip"><b>${L(LCBT.why)}</b>${L(q.info)}</span></span>`:'';
+  const paysList=q.pays?`<details class="info-d" style="margin-top:11px"><summary>${L(LCBT.paysList)}</summary><div class="dbody"><div class="pays-grid">${PAYS_RISQUE.map(p=>`<span>${flagImg(p.c)} ${p.n}</span>`).join('')}</div></div></details>`:'';
+  return `<div class="qbloc"><div class="qhead"><span class="qnum">${i}</span><span class="qtxt">${L(q.q)}</span>${info}</div>${paysList}${body}</div>`;
+}
+function lcbId(id){ return LCB_IDENT.find(f=>f.id===id); }
+function renderLCB(){
+  const el=document.getElementById('lcbBody'); if(!el) return;
+  if(!state.lcb.c_rcs) state.lcb.c_rcs=val('siret'); // préremplissage depuis le SIRET (page 1)
+  // préremplissage de la question PPE depuis l'étape Déclarations
+  if(state.lcb.q2===undefined){ const ppe=document.querySelector('input[name=ppe]:checked'); if(ppe) state.lcb.q2=ppe.value; }
+  el.innerHTML=`
+    <div class="banner">
+      <div class="bt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>${L(LCBT.title)}</div>
+      <p>${L(LCBT.intro)}</p>
+      <div class="law">${L(LCBT.law)}</div>
+    </div>
+    <div class="card"><h3 class="sec">${L(LCBT.ident)}</h3>
+      ${fieldHTML(lcbId('c_siege'))}
+      <div class="row2">${fieldHTML(lcbId('c_capital'))}${fieldHTML(lcbId('c_rcs'))}</div>
+      ${fieldHTML(lcbId('c_datecrea'))}
+      ${fieldHTML(lcbId('c_rldom'))}
+      ${fieldHTML(lcbId('c_compta'))}
+    </div>
+    <div class="card"><h3 class="sec">${L(LCBT.quest)}</h3>
+      ${LCB_Q.map((q,i)=>questionHTML(q,i+1)).join('')}
+    </div>`;
+  initGooglePlaces(); attachPlaces();
+}
+function setLcb(id,v){ state.lcb[id]=v; }
+function setLcbRender(id,v){ state.lcb[id]=v; renderLCB(); }
+
+/* ===== Sélecteur de pays avec drapeaux (combobox image) ===== */
+const CB_LISTS={ risk:()=>PAYS_RISQUE.map(p=>({name:p.n,iso:p.c})), world:()=>WORLD.map(p=>({name:p[0],iso:p[1]})) };
+function comboHTML(f,scope){
+  const v=state.lcb[f.id]||'';
+  const iso=(CB_LISTS[scope]().find(p=>p.name===v)||{}).iso;
+  return `<div class="fg cb-wrap"><label class="fl">${L(f.label)} <span class="req">*</span></label>
+    <div class="cb-field">${v&&iso?`<span class="cb-flag">${flagImg(iso)}</span>`:''}
+      <input class="finp${v&&iso?' has-flag':''}" id="${f.id}_cb" value="${v}" autocomplete="off" placeholder="${L(LCBT.countryPh)}"
+        oninput="cbFilter('${f.id}','${scope}')" onfocus="cbFilter('${f.id}','${scope}')" onblur="cbHide('${f.id}')"></div>
+    <div class="cb-list" id="${f.id}_list" style="display:none"></div></div>`;
+}
+function norm(s){ return (s||'').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
+function cbFilter(fieldId,scope){
+  const inp=document.getElementById(fieldId+'_cb'), box=document.getElementById(fieldId+'_list');
+  if(!inp||!box) return;
+  state.lcb[fieldId]=inp.value;
+  const q=norm(inp.value.trim());
+  const items=CB_LISTS[scope]().filter(p=>norm(p.name).includes(q)).slice(0,8);
+  box.innerHTML=items.map(p=>`<div class="cb-opt" onmousedown="cbPick('${fieldId}',this.dataset.n)" data-n="${p.name.replace(/"/g,'&quot;')}">${flagImg(p.iso)}<span>${p.name}</span></div>`).join('');
+  box.style.display=items.length?'block':'none';
+}
+function cbPick(fieldId,name){ state.lcb[fieldId]=name; renderLCB(); }
+function cbHide(fieldId){ setTimeout(()=>{ const b=document.getElementById(fieldId+'_list'); if(b) b.style.display='none'; },160); }
+function setYN(id,v){ state.lcb[id]=v; renderLCB(); }
+/* Q9 déduite de la date de création (c_datecrea) */
+function createdLessThan3y(){
+  const d=state.lcb.c_datecrea; if(!d) return null;
+  const created=new Date(d); if(isNaN(created.getTime())) return null;
+  const now=new Date(); const threeAgo=new Date(now.getFullYear()-3,now.getMonth(),now.getDate());
+  return created>threeAgo?'oui':'non';
+}
+
+/* ===== Saisie d'adresse assistée Google (optionnelle, activée par CONFIG.GOOGLE_PLACES_KEY) ===== */
+function initGooglePlaces(){
+  if(!CONFIG.GOOGLE_PLACES_KEY) return;
+  if(window.google && google.maps && google.maps.places){ attachPlaces(); return; }
+  if(document.getElementById('gmaps-js')) return;
+  const s=document.createElement('script'); s.id='gmaps-js'; s.async=true;
+  s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(CONFIG.GOOGLE_PLACES_KEY)+'&libraries=places&loading=async&callback=onGmaps';
+  document.head.appendChild(s);
+}
+window.onGmaps=function(){ attachPlaces(); };
+function attachPlaces(){
+  if(!(window.google && google.maps && google.maps.places)) return;
+  document.querySelectorAll('[data-gplaces]').forEach(inp=>{
+    if(inp._ac) return; inp._ac=true;
+    const ac=new google.maps.places.Autocomplete(inp,{types:['address'],fields:['address_components']});
+    ac.addListener('place_changed',()=>fillFromPlace(inp.getAttribute('data-gplaces'), ac.getPlace()));
+  });
+}
+function fillFromPlace(target, place){
+  if(!place || !place.address_components) return;
+  let num='',rue='',cp='',ville='',pays='';
+  place.address_components.forEach(c=>{
+    if(c.types.includes('street_number')) num=c.long_name;
+    if(c.types.includes('route')) rue=c.long_name;
+    if(c.types.includes('postal_code')) cp=c.long_name;
+    if(c.types.includes('locality')||c.types.includes('postal_town')) ville=c.long_name;
+    if(c.types.includes('country')) pays=c.long_name;
+  });
+  const street=(num?num+' ':'')+rue;
+  if(target.indexOf('be:')===0){ // bénéficiaire effectif
+    const b=state.bes[parseInt(target.slice(3),10)]; if(b){ b.rue=street; b.cp=cp; b.ville=ville; b.pays=pays; } renderBE();
+  } else { // champ LCB
+    state.lcb[target+'_rue']=street; state.lcb[target+'_cp']=cp; state.lcb[target+'_ville']=ville; state.lcb[target+'_pays']=pays; renderLCB();
+  }
+}
+
+/* Renvoie la liste des ids requis selon les réponses visibles */
+function lcbRequired(){
+  const req=[];
+  LCB_IDENT.forEach(f=>{ if(f.k==='address'){ req.push(f.id+'_rue',f.id+'_cp',f.id+'_ville'); } else req.push(f.id); });
+  function walk(fields){ fields.forEach(f=>{
+    if(f.opt) return; // champ facultatif
+    if(f.k==='yesno'){ req.push(f.id); const a=state.lcb[f.id]; if(a==='oui'&&f.onYes) walk(f.onYes); if(a==='non'&&f.onNo) walk(f.onNo); }
+    else if(f.k==='address'){ req.push(f.id+'_rue',f.id+'_cp',f.id+'_ville'); }
+    else req.push(f.id);
+  });}
+  LCB_Q.forEach(q=>{
+    if(q.kind==='derived'){ /* déduit — non requis */ }
+    else if(q.kind==='ca'){ req.push('q10_n1','q10_n2','q10_n3'); }
+    else if(q.kind){ req.push(q.id); }
+    else { req.push(q.id); const a=state.lcb[q.id]; if(a==='oui'&&q.onYes) walk(q.onYes); if(a==='non'&&q.onNo) walk(q.onNo); }
+  });
+  return req;
+}
+function validateLCB(){
+  const ok=lcbRequired().every(id=>{ const v=state.lcb[id]; return v!==undefined && String(v).trim()!==''; });
+  return show('errlcb',ok,'err_lcb');
+}
+/* Fiche exportée (libellé FR + réponse) pour le centre */
+function ficheLCB(){
+  const out={identite:{},questionnaire:[]};
+  LCB_IDENT.forEach(f=>{
+    if(f.k==='address'){ const a=['_rue','_cp','_ville','_pays'].map(s=>state.lcb[f.id+s]).filter(Boolean).join(', '); out.identite[f.id]={label:f.label.fr,valeur:a}; }
+    else out.identite[f.id]={label:f.label.fr,valeur:state.lcb[f.id]||''};
+  });
+  function sub(fields){ return fields.map(f=>f.k==='yesno'
+    ? {label:f.label.fr,reponse:state.lcb[f.id]||'',details:sub((state.lcb[f.id]==='oui'?f.onYes:f.onNo)||[])}
+    : {label:f.label.fr,valeur:state.lcb[f.id]||''}); }
+  LCB_Q.forEach((q,i)=>{
+    const o={n:i+1,question:q.q.fr};
+    if(q.kind==='derived') o.valeur=createdLessThan3y()||'';
+    else if(q.kind==='ca') o.valeur={n1:state.lcb.q10_n1||'',n2:state.lcb.q10_n2||'',n3:state.lcb.q10_n3||''};
+    else if(q.kind) o.valeur=state.lcb[q.id]||'';
+    else { o.reponse=state.lcb[q.id]||''; o.details=sub((state.lcb[q.id]==='oui'?q.onYes:q.onNo)||[]); }
+    out.questionnaire.push(o);
+  });
+  return out;
+}
+
+/* ============================================================
+   Navigation
+============================================================ */
+/* Liste maîtresse des étapes ; 'lcb' n'est active qu'en cas de domiciliation. */
+const PANELS=[
+  {panel:'p0',   key:'structure', lab:'s1'},
+  {panel:'p1',   key:'decl',      lab:'s2'},
+  {panel:'plcb', key:'lcb',       lab:'s_lcb', domOnly:true},
+  {panel:'p2',   key:'docs',      lab:'s3'},
+  {panel:'p3',   key:'recap',     lab:'s4'}
+];
+function activePanels(){ return PANELS.filter(p=>!p.domOnly||state.dom); }
+function renderStepper(){
+  const ap=activePanels();
+  document.getElementById('stepper').innerHTML=ap.map((p,i)=>
+    `<div class="step ${i===state.idx?'on':''} ${i<state.idx?'done':''}"><span class="n">${i<state.idx?'✓':(i+1)}</span><span class="lab">${t(p.lab)}</span></div>`).join('');
+}
+function go(idx){
+  const ap=activePanels();
+  if(idx<0||idx>=ap.length) return;
+  if(idx>state.idx && !validate(ap[state.idx].key)) return;
+  state.idx=idx;
+  withVT(()=>{
+    PANELS.forEach(p=>{ const el=document.getElementById(p.panel); if(el) el.classList.toggle('on',p.panel===ap[idx].panel); });
+    renderStepper();
+    const pct=Math.round(((idx+1)/ap.length)*100);
+    document.getElementById('barfill').style.width=pct+'%';
+    document.querySelector('.bar').setAttribute('aria-valuenow',pct);
+    if(ap[idx].key==='lcb') renderLCB();
+    if(ap[idx].key==='docs') renderDocs();
+    if(ap[idx].key==='recap') renderRecap();
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+  const h=document.querySelector('#'+ap[idx].panel+' .sec, #'+ap[idx].panel+' .bt'); if(h){ h.setAttribute('tabindex','-1'); h.focus(); }
+}
+function next(){ go(state.idx+1); }
+function prev(){ go(state.idx-1); }
+/* Navigation libre entre les étapes — la complétude est vérifiée à l'envoi. */
+function validate(key){ return true; }
+/* Contrôle de complétude au moment de l'envoi (champs * + fiche LCB le cas échéant). */
+function validateForSend(){
+  if(!val('centre')) return 'err_centre';
+  // Associations : SIRET et TVA facultatifs (Annexe 2 : « s'ils existent »).
+  const sirenOk = state.entity==='asso' ? val('siren') : (val('siren')&&val('siret')&&val('tva'));
+  const idOk=val('raison')&&val('forme')&&sirenOk&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel');
+  if(!idOk) return 'err_ident';
+  if(!document.getElementById('sanction').checked) return 'err_sanc';
+  if(state.dom && !lcbRequired().every(id=>state.lcb[id]&&String(state.lcb[id]).trim())) return 'err_lcb';
+  if(!document.getElementById('rgpd').checked) return 'err_rgpd';
+  return null;
+}
+function val(id){ return document.getElementById(id).value.trim(); }
+function show(errId,ok,msgKey){ const e=document.getElementById(errId); if(!ok){ e.textContent=t(msgKey); e.classList.add('on'); } else e.classList.remove('on'); return ok; }
+
+/* ===== Récap ===== */
+function renderRecap(){
+  const ids=currentDocIds(); const done=ids.filter(id=>state.files[id]).length; const miss=ids.length-done;
+  const ppe=document.querySelector('input[name=ppe]:checked').value;
+  const ctr=CENTRES.find(c=>c.id===val('centre'));
+  const rows=[
+    [t('r_centre'), ctr?ctr.nom:'—', !ctr],
+    [t('r_dom'), state.dom?t('r_yes'):t('r_no')],
+    [t('r_type'), ENTITIES[state.entity][state.lang]],
+    [t('r_struct'), val('raison')||'—'],
+    [t('r_rl'), (val('rlprenom')+' '+val('rlnom')).trim()||'—'],
+    [t('r_ppe'), ppe==='oui'?t('ppe_oui'):t('ppe_non')],
+    [t('r_be'), String(state.bes.filter(b=>b.nom).length)],
+    ...(state.dom ? [[t('r_lcb'), t('r_done')]] : []),
+    [t('r_docs'), `${done}/${ids.length}`+(miss?` — ${miss} ${t('r_missing')}`:''), miss>0]
+  ];
+  document.getElementById('recap').innerHTML=rows.map(r=>`<div class="rr"><span class="rk">${r[0]}</span><span class="rv ${r[2]?'warn':''}">${r[1]}</span></div>`).join('');
+}
+function checkSend(){ document.getElementById('sendBtn').disabled=!document.getElementById('rgpd').checked; }
+
+/* ===== Envoi ===== */
+function readB64(blob){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=rej; r.readAsDataURL(blob); }); }
+async function submitDossier(){
+  const miss=validateForSend();
+  if(miss){ show('err3',false,miss); return; }
+  const btn=document.getElementById('sendBtn'); btn.disabled=true;
+  const payload=buildPayload();
+  try{
+    if(CONFIG.ENDPOINT){
+      const files=[];
+      for(const f of payload.files){ files.push({docId:f.docId, name:f.name, mimeType:f.blob.type||'application/octet-stream', dataB64:await readB64(f.blob)}); }
+      // text/plain => requête "simple" : pas de pré-vol CORS bloquant pour Apps Script
+      const r=await fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({meta:payload.meta,files})});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+    } else {
+      await new Promise(res=>setTimeout(res,700)); // mode démo
+      console.log('[DÉMO] Dossier (aucun ENDPOINT configuré) :', payload.meta);
+    }
+    withVT(()=>{ document.getElementById('recapWrap').style.display='none'; document.getElementById('successCard').style.display='block'; });
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){ btn.disabled=false; const el=document.getElementById('err3'); el.textContent='⚠ '+(state.lang==='en'?'Sending failed, please retry.':'Échec de l\'envoi, merci de réessayer.'); el.classList.add('on'); }
+}
+function buildPayload(){
+  const ids=currentDocIds();
+  return {
+    meta:{
+      rattachement:CENTRES.find(c=>c.id===val('centre'))||null,
+      domiciliation:state.dom, entity:state.entity, etranger:state.etranger, loi1901:state.loi1901,
+      raison:val('raison'), forme:val('forme'), siren:val('siren'), siret:val('siret'), tva:val('tva'), rna:val('rna'),
+      rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:val('tel')},
+      ppe:document.querySelector('input[name=ppe]:checked').value,
+      beneficiaires:state.bes.filter(b=>b.nom).map(b=>({prenom:b.prenom,nom:b.nom,pct:b.pct,tel:b.tel,email:b.email,domicile:[b.rue,b.cp,b.ville,b.pays].filter(Boolean).join(', ')})),
+      sanction:document.getElementById('sanction').checked,
+      fiche_lcb:state.dom?ficheLCB():null,
+      pieces:ids.map(id=>({id,label:DOC[id].fr,fourni:!!state.files[id],fichier:state.files[id]?fmtFileName(id,state.files[id].name):null})),
+      centre:CONFIG.CENTRE_EMAIL, lang:state.lang
+    },
+    files:ids.filter(id=>state.files[id]).map(id=>({docId:id,name:fmtFileName(id,state.files[id].name),blob:state.files[id].blob}))
+  };
+}
+
+/* ===== Init ===== */
+renderEntities(); renderDocs(); renderStepper(); applyLang(); setThemeIcon();
+/* Mode jour par défaut (le bouton lune permet de basculer en sombre). */
+</script>
+</body>
+</html>
