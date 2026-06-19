@@ -1140,7 +1140,9 @@ function fillFromCompany(r){
   // Représentant légal = 1er dirigeant personne physique
   const dirs=r.dirigeants||[];
   const dpp=dirs.find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
-  if(dpp){ setv('rlnom', dpp.nom); setv('rlprenom', dpp.prenoms); checkGerantMultiple(dpp.prenoms, dpp.nom, r.siren); }
+  // NE PAS écraser un représentant légal déjà saisi/choisi (lien /maj ou clic chip) — on ne renseigne que s'il est vide.
+  if(dpp && !val('rlprenom') && !val('rlnom')){ setv('rlnom', dpp.nom); setv('rlprenom', dpp.prenoms); }
+  if(val('rlprenom')||val('rlnom')) checkGerantMultiple(val('rlprenom'), val('rlnom'), r.siren);
   // Dirigeant(s) déclaré(s) — chips cliquables : on peut désigner le représentant légal
   state.dirigeants=dirs; renderDirChips();
   // Type de structure déduit automatiquement de l'API
@@ -1365,7 +1367,9 @@ function go(idx){
   const ap=activePanels();
   if(idx<0||idx>=ap.length) return;
   if(idx>state.idx && !validate(ap[state.idx].key)) return;
+  const forward = idx>state.idx;
   if(state.idx===0 && idx>0) createAccount();   // « Votre structure » quittée -> crée le compte Archie + dossier (mode normal ; rien en /maj car déjà créé)
+  if(forward) autoSave_();                       // « Continuer » -> enregistrement automatique des champs (sans ré-envoyer les documents)
   state.idx=idx;
   withVT(()=>{
     PANELS.forEach(p=>{ const el=document.getElementById(p.panel); if(el) el.classList.toggle('on',p.panel===ap[idx].panel); });
@@ -1456,6 +1460,18 @@ function createAccount(){
   fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
     .then(r=>r.json()).then(j=>{ if(j&&j.uuid) state.archieUuid=j.uuid; state.creating=false; })
     .catch(()=>{ state.creating=false; });
+}
+/* Enregistrement auto (sur « Continuer ») : champs uniquement, sans ré-envoyer les documents
+   (évite les doublons dans Archie). Silencieux et non bloquant. */
+function autoSave_(){
+  try{
+    if(!CONFIG.ENDPOINT || !val('raison')) return;
+    const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
+             siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
+             email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), centre:val('centre'), dom:state.dom?1:0, files:[]};
+    fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
+      .then(function(r){return r.json();}).then(function(j){ if(j&&j.uuid) state.archieUuid=j.uuid; toastSave_(state.lang==='en'?'✓ Saved':'✓ Enregistré'); }).catch(function(){});
+  }catch(e){}
 }
 async function saveProgress(btn){
   if(btn){ btn.disabled=true; btn._t=btn.textContent; btn.textContent='…'; }
@@ -1551,6 +1567,8 @@ function prefillFromURL(){
           var i=document.getElementById('coSearch'); if(i){ i.value='✅ '+(raison||res.nom_raison_sociale||res.nom_complet||''); i.classList.add('cs-ok'); i.setAttribute('aria-expanded','false'); }
           if(raison) setv('raison',raison);     // conserve notre dénomination arbitrée
           if(email) setv('email',email); if(tel) setv('tel',tel);
+          if(contact){ var pc=contact.trim().split(/\s+/); if(pc.length>=2){ setv('rlprenom',pc[0]); setv('rlnom',pc.slice(1).join(' ')); } }  // RL enregistré prioritaire sur data.gouv
+          if(typeof renderDirChips==='function') renderDirChips();   // resélectionne la bonne puce
           renderStepper();
           if(u) loadClientFiles(u);             // pièces déjà en notre possession (Archie) -> checklist
         }).catch(function(){ if(u) loadClientFiles(u); });
