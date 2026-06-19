@@ -684,7 +684,7 @@ const I18N = {
   footer:{fr:'The Bureau · Dossier d\'entrée — données chiffrées en transit',en:'The Bureau · Onboarding file — data encrypted in transit'},
   recent_badge:{fr:'< 3 mois',en:'< 3 months'},req_badge:{fr:'Requis',en:'Required'},cond_badge:{fr:'Selon cas',en:'If applicable'},
   upload:{fr:'Joindre',en:'Attach'},replace:{fr:'Remplacer',en:'Replace'},
-  auto_badge:{fr:'Récupéré INPI',en:'From INPI'},doc_view:{fr:'Voir',en:'View'},doc_remove:{fr:'Retirer',en:'Remove'},auto_loading:{fr:'Récupération auto…',en:'Auto-fetching…'},
+  auto_badge:{fr:'Import automatique',en:'Auto-imported'},doc_view:{fr:'Voir',en:'View'},doc_remove:{fr:'Retirer',en:'Remove'},auto_loading:{fr:'Récupération auto…',en:'Auto-fetching…'},
   err_ident:{fr:'Merci de renseigner tous les champs obligatoires, dont un email valide.',en:'Please fill in all required fields, including a valid email.'},
   err_sanc:{fr:'Merci de cocher l\'attestation sanctions & gel des avoirs.',en:'Please tick the sanctions & asset-freeze declaration.'},
   err_rgpd:{fr:'Merci d\'accepter le traitement RGPD pour envoyer votre dossier.',en:'Please accept GDPR processing to submit your file.'},
@@ -745,7 +745,7 @@ function sanitizeName(s){ return (s||'').toString().normalize('NFD').replace(/[�
 function fmtFileName(id,original){
   const ext=(original&&original.indexOf('.')>=0)?original.slice(original.lastIndexOf('.')):'';
   const parts=[sanitizeName(val('raison'))||'DOSSIER'];
-  if(PERSON_DOCS.includes(id)){ const p=sanitizeName(val('rlprenom'))+'et'+sanitizeName(val('rlnom')); if(p!=='et') parts.push(p); }
+  if(PERSON_DOCS.includes(id)){ const p=sanitizeName(val('rlprenom'))+'-'+sanitizeName(val('rlnom')); if(p!=='-') parts.push(p); }
   parts.push(DOC_FILE[id]||'Document');
   return parts.join('_')+ext;
 }
@@ -1454,6 +1454,7 @@ function loadClientFiles(u){
     var ids=currentDocIds();
     j.files.forEach(function(f){
       var docId=mapNomDocToId_(f.name, ids);
+      if(docId && PERSON_DOCS.indexOf(docId)>-1) docId=null;   // pièces nominatives (CNI, justif. domicile) : titulaire ≠ RL possible -> le client la fournit
       if(docId && !state.files[docId] && f.b64){
         var bin=atob(f.b64), arr=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
         state.files[docId]={name:f.name, size:arr.length, type:'application/pdf', blob:new Blob([arr],{type:'application/pdf'}), auto:true};
