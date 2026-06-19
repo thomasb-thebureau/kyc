@@ -1046,6 +1046,16 @@ function fillFromCompany(r){
   state.lcb.c_siege_pays='France';
   if(s.siret) state.lcb.c_rcs=s.siret;
   if(r.date_creation) state.lcb.c_datecrea=r.date_creation;
+  inpiAutofill(r.siren); // capital social via le backend (RNE/INPI), si déployé
+}
+/* Récupère le capital social (RNE/INPI) via le proxy backend et pré-remplit la fiche. Sans effet si ENDPOINT non configuré. */
+async function inpiAutofill(siren){
+  if(!CONFIG.ENDPOINT || !siren) return;
+  try{
+    const r=await fetch(CONFIG.ENDPOINT+(CONFIG.ENDPOINT.indexOf('?')<0?'?':'&')+'siren='+encodeURIComponent(String(siren).replace(/\D/g,'')),{method:'GET'});
+    const j=await r.json();
+    if(j&&j.ok&&j.capital!=null){ state.lcb.c_capital=String(j.capital); if(state.dom&&document.getElementById('lcbBody')) renderLCB(); }
+  }catch(e){ /* silencieux : capital saisi manuellement */ }
 }
 function cbHide(fieldId){ setTimeout(()=>{ const b=document.getElementById(fieldId+'_list'); if(b) b.style.display='none'; const i=document.getElementById(fieldId+'_cb'); if(i) i.setAttribute('aria-expanded','false'); },160); }
 function setYN(id,v){ state.lcb[id]=v; renderLCB(); }
