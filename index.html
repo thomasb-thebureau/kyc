@@ -1097,7 +1097,7 @@ async function inpiAutofill(siren){
   try{
     const r=await fetch(CONFIG.ENDPOINT+(CONFIG.ENDPOINT.indexOf('?')<0?'?':'&')+'siren='+encodeURIComponent(String(siren).replace(/\D/g,'')),{method:'GET'});
     const j=await r.json();
-    if(j && j.capital!=null){ state.lcb.c_capital=String(j.capital); if(state.dom&&document.getElementById('lcbBody')) renderLCB(); }
+    if(j && j.capital!=null){ state.lcb.c_capital=String(Math.round(Number(j.capital))); if(state.dom&&document.getElementById('lcbBody')) renderLCB(); }
   }catch(e){ /* silencieux : capital saisi manuellement */ }
 }
 function cbHide(fieldId){ setTimeout(()=>{ const b=document.getElementById(fieldId+'_list'); if(b) b.style.display='none'; const i=document.getElementById(fieldId+'_cb'); if(i) i.setAttribute('aria-expanded','false'); },160); }
