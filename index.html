@@ -208,8 +208,9 @@ body.dark .badge.recent{color:#e0a36a}
 .btn-send:hover{background:#9c8230}
 .btn-send:disabled{background:var(--cf);color:var(--gc);box-shadow:none;cursor:not-allowed}
 .btn-next svg,.btn-send svg{width:15px;height:15px}
-.save-fab{position:fixed;bottom:18px;left:18px;z-index:50;background:var(--vert);color:var(--ivoire);border:none;border-radius:50px;padding:11px 18px;font:700 12px 'Plus Jakarta Sans';cursor:pointer;box-shadow:0 8px 24px rgba(30,64,53,.3);display:inline-flex;align-items:center;gap:7px}
-.save-fab:hover{background:#163026}
+.btn-save2{background:var(--or);color:#fff;border:none;border-radius:50px;padding:13px 22px;font:700 12px 'Plus Jakarta Sans';letter-spacing:.06em;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .2s;box-shadow:0 6px 18px rgba(176,148,56,.28)}
+.btn-save2:hover{background:#9c8230}
+.btn-save2:disabled{opacity:.6;cursor:wait}
 
 /* ===== Success ===== */
 .success{text-align:center;padding:40px 20px}
@@ -525,7 +526,6 @@ body.dark .page-sub b{color:var(--ivoire)}
   </div>
 </main>
 
-<button class="save-fab" onclick="saveProgress(this)" title="Envoie les infos et pièces déjà saisies vers The Bureau">💾 <span data-i="save_btn">Enregistrer</span></button>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
 /* ============================================================
@@ -1463,7 +1463,21 @@ document.addEventListener('input', function(e){
 }, true);
 
 renderEntities(); renderDocs(); renderStepper(); applyLang(); setThemeIcon(); gsapIntro();
+injectSaveButtons();   // bouton « Enregistrer » à côté de « Continuer » sur chaque page
 prefillFromURL();   // mode /maj : pré-remplissage depuis le lien personnalisé envoyé au client
+
+/* Ajoute un bouton « Enregistrer » (doré) juste à gauche de « Continuer » dans chaque barre de navigation. */
+function injectSaveButtons(){
+  document.querySelectorAll('.nav').forEach(function(nav){
+    if(nav.querySelector('.btn-save2')) return;
+    var nx=nav.querySelector('.btn-next'); if(!nx) return;   // pas sur la page d'envoi final
+    var b=document.createElement('button'); b.type='button'; b.className='btn-save2';
+    b.innerHTML='💾 <span data-i="save_btn">'+(state.lang==='en'?'Save':'Enregistrer')+'</span>';
+    b.title='Envoie les infos et pièces déjà saisies vers The Bureau';
+    b.onclick=function(){ saveProgress(b); };
+    nav.insertBefore(b, nx);
+  });
+}
 
 /* /maj — pré-remplit le questionnaire depuis les paramètres du lien
    (siren, raison, email, tel, centre = I|II|III|IV, contact = "Prénom Nom"). */
