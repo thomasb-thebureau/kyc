@@ -213,6 +213,13 @@ body.dark .badge.recent{color:#e0a36a}
 .vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .tgl-row:focus-within .sw{box-shadow:0 0 0 3px var(--op)}
 .cb-opt.active{background:var(--vp)}
+/* Recherche entreprise (data.gouv) */
+.cs-wrap{position:relative;margin-bottom:16px;padding-bottom:4px;border-bottom:1px dashed var(--cf)}
+.cs-opt{display:block;padding:9px 13px;line-height:1.4}
+.cs-opt b{font-weight:600;font-size:13px}
+.cs-opt small{color:var(--gris);font-size:11px}
+.cs-empty{padding:10px 13px;color:var(--gris);font-size:12px}
+#coSearch{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23B09438' stroke-width='2'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");background-repeat:no-repeat;background-position:right 13px center;padding-right:38px}
 .err-msg{color:var(--err);font-size:12px;margin-top:8px;font-weight:600;display:none}
 .err-msg.on{display:block}
 
@@ -326,6 +333,12 @@ body.dark .page-sub b{color:var(--ivoire)}
 
     <div class="card">
       <h2 class="sec" data-i="sec_ident">Identité de la structure</h2>
+      <div class="fg cs-wrap">
+        <label class="fl" for="coSearch" data-i="f_cosearch">Rechercher mon entreprise (nom, SIREN ou SIRET)</label>
+        <input class="finp" id="coSearch" autocomplete="off" placeholder="Ex. « Acme » ou 552100554" aria-label="Rechercher mon entreprise" role="combobox" aria-expanded="false" aria-controls="coList" oninput="coSearchDebounced()" onblur="coHide()">
+        <div class="cb-list" id="coList" role="listbox" aria-label="Résultats" style="display:none"></div>
+        <p class="hint" id="coHint" data-i="cosearch_hint" style="margin-top:7px">Pré-remplit automatiquement les champs ci-dessous · source : Annuaire des Entreprises (data.gouv).</p>
+      </div>
       <div class="row2">
         <div class="fg"><label class="fl" for="raison" data-i="f_raison">Dénomination sociale <span class="req">*</span></label><input class="finp" id="raison" autocomplete="organization"></div>
         <div class="fg"><label class="fl" for="forme" data-i="f_forme">Forme juridique <span class="req">*</span></label>
@@ -598,6 +611,9 @@ const I18N = {
   etr1:{fr:'Siège social à l\'étranger',en:'Head office abroad'},etr2:{fr:' · ajoute un justificatif de validité juridique',en:' · adds a legal-validity document'},
   loi1:{fr:'Association loi 1901',en:'Law-1901 association'},loi2:{fr:' · ajoute le n° RNA',en:' · adds the RNA number'},
   sec_ident:{fr:'Identité de la structure',en:'Entity identity'},
+  f_cosearch:{fr:'Rechercher mon entreprise (nom, SIREN ou SIRET)',en:'Find my company (name, SIREN or SIRET)'},
+  cosearch_hint:{fr:'Pré-remplit automatiquement les champs ci-dessous · source : Annuaire des Entreprises (data.gouv).',en:'Auto-fills the fields below · source: French company directory (data.gouv).'},
+  cosearch_empty:{fr:'Aucun résultat',en:'No result'},
   f_raison:{fr:'Dénomination sociale <span class="req">*</span>',en:'Legal name <span class="req">*</span>'},
   f_forme:{fr:'Forme juridique <span class="req">*</span>',en:'Legal form <span class="req">*</span>'},f_siren:{fr:'N° SIREN <span class="req">*</span>',en:'SIREN no. <span class="req">*</span>'},f_siret:{fr:'N° SIRET <span class="req">*</span>',en:'SIRET no. <span class="req">*</span>'},f_tva:{fr:'N° TVA <span class="req">*</span>',en:'VAT no. <span class="req">*</span>'},
   forme_ph:{fr:'Sélectionnez…',en:'Select…'},forme_autre:{fr:'Autre',en:'Other'},
@@ -948,6 +964,71 @@ function cbKey(e,fieldId,scope){
   if(opts[act]){ opts[act].scrollIntoView({block:'nearest'}); inp.setAttribute('aria-activedescendant',opts[act].id); }
 }
 function cbPick(fieldId,name){ state.lcb[fieldId]=name; renderLCB(); }
+
+/* ===== Recherche entreprise (API Recherche d'entreprises — data.gouv) ===== */
+let _coTimer=null, _coResults=[];
+function coSearchDebounced(){ clearTimeout(_coTimer); _coTimer=setTimeout(coSearch,350); }
+async function coSearch(){
+  const inp=document.getElementById('coSearch'), box=document.getElementById('coList');
+  const q=(inp.value||'').trim();
+  if(q.length<3){ box.style.display='none'; inp.setAttribute('aria-expanded','false'); return; }
+  try{
+    const r=await fetch('https://recherche-entreprises.api.gouv.fr/search?per_page=6&q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
+    if(!r.ok) throw new Error(r.status);
+    const j=await r.json(); _coResults=j.results||[];
+    box.innerHTML=_coResults.length
+      ? _coResults.map((x,i)=>{ const s=x.siege||{}; return `<div class="cb-opt cs-opt" role="option" onmousedown="coPick(${i})"><b>${esc(x.nom_raison_sociale||x.nom_complet||'—')}</b><br><small>${x.siren||''}${s.libelle_commune?' · '+esc(s.libelle_commune):''} ${s.code_postal||''}</small></div>`; }).join('')
+      : `<div class="cs-empty">${t('cosearch_empty')}</div>`;
+    box.style.display='block'; inp.setAttribute('aria-expanded','true');
+  }catch(e){ box.style.display='none'; }
+}
+function esc(s){ return String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function coHide(){ setTimeout(()=>{ const b=document.getElementById('coList'); if(b) b.style.display='none'; const i=document.getElementById('coSearch'); if(i) i.setAttribute('aria-expanded','false'); },180); }
+function coPick(i){ const r=_coResults[i]; if(r) fillFromCompany(r); const b=document.getElementById('coList'); if(b) b.style.display='none'; }
+
+/* Catégorie juridique INSEE -> forme du sélecteur (best-effort) */
+function mapForme(code, comp){
+  if(comp){ if(comp.est_association) return 'Association'; if(comp.est_entrepreneur_individuel) return 'Auto-entrepreneur / EI'; }
+  if(!code) return '';
+  if(code==='5720') return 'SASU';
+  if(code.indexOf('57')===0) return 'SAS';
+  const n=parseInt(code,10);
+  if(n>=5410&&n<=5499) return 'SARL';
+  if(n>=5505&&n<=5599) return 'SA';
+  if(n>=5202&&n<=5203) return 'SNC';
+  if(n>=5306&&n<=5385) return 'SCA';
+  if(code==='6540'||code==='6541') return 'SCI';
+  if(code==='6534') return 'SCM';
+  if(code==='9300') return 'Fondation';
+  if(code==='5195'||code[0]==='9') return 'Association';
+  return '';
+}
+function fillFromCompany(r){
+  const s=r.siege||{}, comp=r.complements||{};
+  const setv=(id,v)=>{ const el=document.getElementById(id); if(el&&v!=null&&v!=='') el.value=v; };
+  setv('raison', r.nom_raison_sociale||r.nom_complet);
+  setv('siren', r.siren);
+  setv('siret', s.siret);
+  // N° TVA intracom français calculé depuis le SIREN
+  if(r.siren && /^\d{9}$/.test(r.siren)){ const n=parseInt(r.siren,10); const cle=(12+3*(n%97))%97; setv('tva','FR'+String(cle).padStart(2,'0')+r.siren); }
+  // Forme juridique
+  const forme=mapForme(r.nature_juridique, comp); if(forme){ const fs=document.getElementById('forme'); if([...fs.options].some(o=>o.value===forme)) fs.value=forme; }
+  // Représentant légal = 1er dirigeant personne physique
+  const dpp=(r.dirigeants||[]).find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
+  if(dpp){ setv('rlnom', dpp.nom); setv('rlprenom', dpp.prenoms); }
+  // Type de structure + RNA si association
+  if(comp.est_association){ state.entity='asso'; renderEntities(); document.getElementById('loiRow').style.display='flex'; if(comp.identifiant_association){ state.loi1901=true; const li=document.getElementById('loi1901'); if(li) li.checked=true; document.getElementById('loiSw').classList.add('on'); } }
+  updateRnaRow(); updateAsso(); renderDocs();
+  if(comp.est_association && comp.identifiant_association) setv('rna', comp.identifiant_association);
+  // Pré-remplissage de la fiche LCB-FT (siège, RCS, date de création)
+  const rue=[s.numero_voie,(s.indice_repetition||''),s.type_voie,s.libelle_voie].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+  if(rue) state.lcb.c_siege_rue=rue;
+  if(s.code_postal) state.lcb.c_siege_cp=s.code_postal;
+  if(s.libelle_commune) state.lcb.c_siege_ville=s.libelle_commune;
+  state.lcb.c_siege_pays='France';
+  if(s.siret) state.lcb.c_rcs=s.siret;
+  if(r.date_creation) state.lcb.c_datecrea=r.date_creation;
+}
 function cbHide(fieldId){ setTimeout(()=>{ const b=document.getElementById(fieldId+'_list'); if(b) b.style.display='none'; const i=document.getElementById(fieldId+'_cb'); if(i) i.setAttribute('aria-expanded','false'); },160); }
 function setYN(id,v){ state.lcb[id]=v; renderLCB(); }
 /* Q9 déduite de la date de création (c_datecrea) */
