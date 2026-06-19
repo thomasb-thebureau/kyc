@@ -179,6 +179,10 @@ body.dark .badge.recent{color:#e0a36a}
 .doc .ddate{display:block;margin-top:6px;font-size:12px;color:var(--gris)}
 .doc .ddate input{font:inherit;padding:3px 6px;border:1px solid var(--cfield);border-radius:7px;margin-left:6px}
 .doc .ddate-err{display:block;color:var(--err);font-weight:600;font-size:11.5px;margin-top:3px}
+.doc.docwarn{border-color:#c07830;box-shadow:0 0 0 1px #c07830;background:rgba(192,120,48,.05)}
+.doc.docwarn .tick{background:#c07830;border-color:#c07830}
+.doc.docwarn .ddate input{border-color:#c07830}
+.doc .ddate-warn{display:block;color:#9a5e22;font-weight:600;font-size:11.5px;margin-top:3px}
 .up{flex-shrink:0;display:flex;align-items:center;gap:7px}
 .up label{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cfield);border-radius:50px;padding:8px 15px;font:700 11px 'Plus Jakarta Sans';letter-spacing:.04em;color:var(--gris);cursor:pointer;transition:all .2s;background:var(--blanc)}
 .up label:hover{border-color:var(--or);color:var(--orAA)}
@@ -383,7 +387,7 @@ body.dark .page-sub b{color:var(--ivoire)}
         <div class="fg"><label class="fl" for="siret" data-i="f_siret">N° SIRET <span class="req">*</span></label><input class="finp" id="siret" inputmode="numeric" oninput="this.value=fmtSiret(this.value)"></div>
         <div class="fg"><label class="fl" for="tva" data-i="f_tva">N° TVA <span class="req">*</span></label><input class="finp" id="tva" oninput="this.value=fmtTva(this.value)"></div>
       </div>
-      <div class="fg"><label class="fl" for="adresse" data-i="f_adresse">Adresse du siège social</label><input class="finp" id="adresse" autocomplete="street-address"></div>
+      <div class="fg"><label class="fl" for="adresse" data-i="f_adresse">Adresse du siège social</label><input class="finp" id="adresse" autocomplete="street-address"><div class="ahint" data-i="f_adresse_hint">Renseignée automatiquement d'après le numéro de SIRET ; si elle a changé récemment, la mise à jour se fait automatiquement.</div></div>
       <div class="fg" id="rnaRow" style="display:none"><label class="fl" for="rna" data-i="f_rna">N° RNA — Répertoire National des Associations</label><input class="finp" id="rna" placeholder="W123456789"></div>
       <h3 class="sec" style="margin-top:10px" data-i="sec_rl">Représentant légal</h3>
       <div class="row2">
@@ -649,6 +653,7 @@ const I18N = {
   cosearch_hint:{fr:'Pré-remplit automatiquement les champs ci-dessous · source : Annuaire des Entreprises (data.gouv).',en:'Auto-fills the fields below · source: French company directory (data.gouv).'},
   cosearch_empty:{fr:'Aucun résultat',en:'No result'},
   f_adresse:{fr:'Adresse du siège social',en:'Registered-office address'},
+  f_adresse_hint:{fr:'Renseignée automatiquement d\'après le numéro de SIRET ; si elle a changé récemment, la mise à jour se fait automatiquement.',en:'Auto-filled from the SIRET number; if it has changed recently, the update is automatic.'},
   dir_label:{fr:'Dirigeant(s) déclaré(s)',en:'Declared director(s)'},
   f_raison:{fr:'Dénomination sociale <span class="req">*</span>',en:'Legal name <span class="req">*</span>'},
   f_forme:{fr:'Forme juridique <span class="req">*</span>',en:'Legal form <span class="req">*</span>'},f_siren:{fr:'N° SIREN <span class="req">*</span>',en:'SIREN no. <span class="req">*</span>'},f_siret:{fr:'N° SIRET <span class="req">*</span>',en:'SIRET no. <span class="req">*</span>'},f_tva:{fr:'N° TVA <span class="req">*</span>',en:'VAT no. <span class="req">*</span>'},
@@ -694,6 +699,7 @@ const I18N = {
   upload:{fr:'Joindre',en:'Attach'},replace:{fr:'Remplacer',en:'Replace'},
   auto_badge:{fr:'Import automatique',en:'Auto-imported'},doc_view:{fr:'Voir',en:'View'},doc_remove:{fr:'Retirer',en:'Remove'},auto_loading:{fr:'Récupération auto…',en:'Auto-fetching…'},
   err_ident:{fr:'Merci de renseigner tous les champs obligatoires, dont un email valide.',en:'Please fill in all required fields, including a valid email.'},
+  err_be:{fr:'Merci de déclarer au moins un bénéficiaire effectif (prénom et nom).',en:'Please declare at least one beneficial owner (first and last name).'},
   err_sanc:{fr:'Merci de cocher l\'attestation sanctions & gel des avoirs.',en:'Please tick the sanctions & asset-freeze declaration.'},
   err_rgpd:{fr:'Merci d\'accepter le traitement RGPD pour envoyer votre dossier.',en:'Please accept GDPR processing to submit your file.'},
   r_dom:{fr:'Domiciliation',en:'Domiciliation'},r_yes:{fr:'Avec',en:'Yes'},r_no:{fr:'Sans',en:'No'},
@@ -765,6 +771,7 @@ function renderDocs(){
   list.innerHTML=ids.map(id=>{
     const d=DOC[id]; const f=state.files[id]; const loading=state.autoLoading&&state.autoLoading[id];
     const recent=(d.b||[]).includes('recent'), old=state.docOld&&state.docOld[id];
+    const dateMissing=f&&recent&&!old&&!(state.docDates&&state.docDates[id]);   // pièce datée chargée mais date non renseignée → orange
     const actions = loading
       ? `<span class="up"><span class="auto-load">${t('auto_loading')}</span></span>`
       : `<span class="up">
@@ -772,21 +779,23 @@ function renderDocs(){
           ${f?`<button type="button" class="docbtn rm" onclick="removeDoc('${id}')">${t('doc_remove')}</button>`:''}
           <label for="file_${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>${f?t('replace'):t('upload')}</label>
           <input type="file" id="file_${id}" accept="image/*,.pdf,.doc,.docx" onchange="onFile('${id}',this)"></span>`;
-    return `<div class="doc ${f?'filled':''} ${old?'docerr':''}" id="doc_${id}">
+    return `<div class="doc ${f?'filled':''} ${old?'docerr':''} ${dateMissing?'docwarn':''}" id="doc_${id}">
       <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
       <span class="dinfo">
         <span class="dname">${d[state.lang]}</span>
         <span class="dbadges">${(d.b||[]).map(badge).join('')}${f&&f.auto?badge('auto'):''}</span>
         ${f?`<span class="dfile">📎 ${fmtFileName(id,f.name)}</span>`:''}
-        ${f&&recent?`<span class="ddate">${state.lang==='en'?'Document date:':'Date du document :'}<input type="date" value="${(state.docDates&&state.docDates[id])||''}" onchange="setDocDate('${id}',this.value)">${old?`<span class="ddate-err">⚠ ${state.lang==='en'?'Older than 3 months — please replace':'Pièce de plus de 3 mois — refusée, à remplacer'}</span>`:''}</span>`:''}
+        ${f&&recent?`<span class="ddate">${state.lang==='en'?'Document date:':'Date du document :'}<input type="date" value="${(state.docDates&&state.docDates[id])||''}" onchange="setDocDate('${id}',this.value)">${old?`<span class="ddate-err">⚠ ${state.lang==='en'?'Older than 3 months — please replace':'Pièce de plus de 3 mois — refusée, à remplacer'}</span>`:(dateMissing?`<span class="ddate-warn">⚠ ${state.lang==='en'?'Please enter the document date':'Renseignez la date du document'}</span>`:'')}</span>`:''}
       </span>
       ${actions}
     </div>`;
   }).join('');
-  const done=ids.filter(id=>state.files[id] && !(state.docOld&&state.docOld[id])).length;
+  const done=ids.filter(docReady).length;
   document.getElementById('docDone').textContent=done;
   document.getElementById('docTot').textContent='/'+ids.length;
 }
+/* Pièce « prête » = fichier présent, non périmé, et — si « < 3 mois » — date renseignée. */
+function docReady(id){ const d=DOC[id]; const f=state.files[id]; if(!f) return false; if(state.docOld&&state.docOld[id]) return false; if((d.b||[]).includes('recent') && !(state.docDates&&state.docDates[id])) return false; return true; }
 function onFile(id,inp){ const f=inp.files[0]; if(f){ state.files[id]={name:f.name,size:f.size,type:f.type,blob:f}; } renderDocs(); }
 function removeDoc(id){ state.files[id]=null; if(state.docDates) state.docDates[id]=''; if(state.docOld) state.docOld[id]=false; renderDocs(); }
 /* Date d'une pièce « < 3 mois » (Kbis, justif. domicile…). Refuse si > 3 mois (bordure rouge). */
@@ -821,12 +830,14 @@ function autoFetchDocs(siren){
 }
 
 /* Bénéficiaires effectifs */
-function addBE(){ state.bes.push({prenom:'',nom:'',rue:'',cp:'',ville:'',pays:'',pct:'',tel:'',email:''}); renderBE(); }
-function rmBE(i){ state.bes.splice(i,1); renderBE(); }
+function beBlank(){ return {prenom:'',nom:'',rue:'',cp:'',ville:'',pays:'',pct:'',tel:'',email:''}; }
+function addBE(){ state.bes.push(beBlank()); renderBE(); }
+function ensureBE(){ if(!state.bes.length) state.bes.push(beBlank()); }   // au moins 1 bénéficiaire effectif (obligatoire)
+function rmBE(i){ if(state.bes.length<=1){ state.bes[0]=beBlank(); } else { state.bes.splice(i,1); } renderBE(); }
 function renderBE(){
   document.getElementById('beList').innerHTML=state.bes.map((b,i)=>`
     <div class="be">
-      <button class="rm" onclick="rmBE(${i})" aria-label="Supprimer">&times;</button>
+      ${state.bes.length>1?`<button class="rm" onclick="rmBE(${i})" aria-label="Supprimer">&times;</button>`:''}
       <div class="row2">
         <div class="fg"><label class="fl">${t('be_prenom')}</label><input class="finp" aria-label="${t('be_prenom')}" value="${b.prenom||''}" oninput="state.bes[${i}].prenom=this.value"></div>
         <div class="fg"><label class="fl">${t('be_nom')}</label><input class="finp" aria-label="${t('be_nom')}" value="${b.nom||''}" oninput="state.bes[${i}].nom=this.value"></div>
@@ -838,7 +849,7 @@ function renderBE(){
           <input class="finp" aria-label="${t('be_dom')} — ${L(LCBT.addr_ville)}" placeholder="${L(LCBT.addr_ville)}" value="${b.ville||''}" oninput="state.bes[${i}].ville=this.value">
           <input class="finp" aria-label="${t('be_dom')} — ${L(LCBT.addr_pays)}" placeholder="${L(LCBT.addr_pays)}" value="${b.pays||''}" oninput="state.bes[${i}].pays=this.value">
         </div>
-        ${CONFIG.GOOGLE_PLACES_KEY?`<div class="ahint">📍 ${L(LCBT.addr_g)}</div>`:''}
+        <div class="ahint">🔎 ${L(LCBT.addr_g)}</div>
       </div>
       <div class="row3">
         <div class="fg"><label class="fl">${t('be_pct')}</label><input class="finp" aria-label="${t('be_pct')}" inputmode="numeric" value="${b.pct||''}" oninput="state.bes[${i}].pct=this.value"></div>
@@ -924,6 +935,7 @@ const LCBT={
   paysPh:{fr:'Sélectionnez un pays…',en:'Select a country…'},autre:{fr:'Autre',en:'Other'},selectPh:{fr:'Sélectionnez…',en:'Select…'},
   addr_rue:{fr:'N° et rue',en:'Street address'},addr_cp:{fr:'Code postal',en:'Postal code'},addr_ville:{fr:'Ville',en:'City'},addr_pays:{fr:'Pays',en:'Country'},
   addr_g:{fr:'Tapez l\'adresse puis choisissez une suggestion — code postal, ville et pays se remplissent seuls.',en:'Type the address and pick a suggestion — postcode, city and country auto-fill.'},
+  addr_siege:{fr:'Adresse renseignée automatiquement d\'après le numéro de SIRET. Si elle a changé récemment, la mise à jour se fait automatiquement — sinon, tapez l\'adresse et choisissez une suggestion.',en:'Address auto-filled from the SIRET number. If it has changed recently, the update is automatic — otherwise, type the address and pick a suggestion.'},
   countryPh:{fr:'Tapez un pays (ex. « Fra » → France)…',en:'Type a country (e.g. “Fra” → France)…'},
   derivedFromDate:{fr:'déduit automatiquement de la date de création',en:'auto-derived from the incorporation date'},
   needDate:{fr:'Renseignez d\'abord la date de création ci-dessus.',en:'Please fill the incorporation date above first.'},
@@ -946,7 +958,7 @@ function fieldHTML(f){
         <input class="finp" aria-label="${L(f.label)} — ${L(LCBT.addr_ville)}" placeholder="${L(LCBT.addr_ville)}" value="${g('ville')}" oninput="setLcb('${f.id}_ville',this.value)">
         <input class="finp" aria-label="${L(f.label)} — ${L(LCBT.addr_pays)}" placeholder="${L(LCBT.addr_pays)}" value="${g('pays')}" oninput="setLcb('${f.id}_pays',this.value)">
       </div>
-      <div class="ahint">🔎 ${L(LCBT.addr_g)}</div></div>`;
+      <div class="ahint">🔎 ${L(f.id==='c_siege'?LCBT.addr_siege:LCBT.addr_g)}</div></div>`;
   }
   if(f.k==='select'){ const opts=f.optionsKeys?f.optionsKeys.map(k=>({v:I18N[k].fr,t:t(k)})):(f.options||[]).map(o=>({v:o,t:o})); return `<div class="fg"><label class="fl">${L(f.label)}${f.opt?'':' <span class="req">*</span>'}</label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.selectPh)}</option>${opts.map(o=>`<option value="${o.v.replace(/"/g,'&quot;')}" ${v===o.v?'selected':''}>${o.t}</option>`).join('')}</select></div>`; }
   if(f.id==='c_rcs') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${fmtSiret(v)}" oninput="this.value=fmtSiret(this.value);setLcb('c_rcs',this.value)"></div>`;
@@ -1308,7 +1320,7 @@ function stepComplete(key){
   if(key==='structure'){ const sir=state.entity==='asso'?true:(val('siret')&&val('tva')); return !!(val('centre')&&val('raison')&&val('forme')&&val('siren')&&sir&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')); }
   if(key==='decl'){ return document.getElementById('sanction').checked; }
   if(key==='lcb'){ return lcbRequired().every(id=>state.lcb[id]&&String(state.lcb[id]).trim()); }
-  if(key==='docs'){ const ids=currentDocIds(); return ids.length>0 && ids.every(id=>state.files[id] && !(state.docOld&&state.docOld[id])); }
+  if(key==='docs'){ const ids=currentDocIds(); return ids.length>0 && ids.every(docReady); }
   if(key==='recap'){ return document.getElementById('rgpd').checked; }
   return false;
 }
@@ -1351,6 +1363,7 @@ function validateForSend(){
   const sirenOk = state.entity==='asso' ? val('siren') : (val('siren')&&val('siret')&&val('tva'));
   const idOk=val('raison')&&val('forme')&&sirenOk&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel');
   if(!idOk) return 'err_ident';
+  if(!state.bes.some(b=>b.prenom&&b.prenom.trim()&&b.nom&&b.nom.trim())) return 'err_be';   // au moins 1 bénéficiaire effectif
   if(!document.getElementById('sanction').checked) return 'err_sanc';
   if(state.dom && !lcbRequired().every(id=>state.lcb[id]&&String(state.lcb[id]).trim())) return 'err_lcb';
   if(!document.getElementById('rgpd').checked) return 'err_rgpd';
@@ -1462,7 +1475,8 @@ document.addEventListener('input', function(e){
   if(u!==el.value){ el.value=u; try{ el.setSelectionRange(p,q); }catch(_){ } }
 }, true);
 
-renderEntities(); renderDocs(); renderStepper(); applyLang(); setThemeIcon(); gsapIntro();
+ensureBE();   // garantit au moins 1 bénéficiaire effectif (obligatoire)
+renderEntities(); renderDocs(); renderStepper(); renderBE(); applyLang(); setThemeIcon(); gsapIntro();
 injectSaveButtons();   // bouton « Enregistrer » à côté de « Continuer » sur chaque page
 prefillFromURL();   // mode /maj : pré-remplissage depuis le lien personnalisé envoyé au client
 
