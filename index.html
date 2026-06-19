@@ -878,6 +878,7 @@ function fieldHTML(f){
   }
   if(f.k==='select'){ const opts=f.optionsKeys?f.optionsKeys.map(k=>({v:I18N[k].fr,t:t(k)})):(f.options||[]).map(o=>({v:o,t:o})); return `<div class="fg"><label class="fl">${L(f.label)}${f.opt?'':' <span class="req">*</span>'}</label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.selectPh)}</option>${opts.map(o=>`<option value="${o.v.replace(/"/g,'&quot;')}" ${v===o.v?'selected':''}>${o.t}</option>`).join('')}</select></div>`; }
   if(f.id==='c_rcs') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${fmtSiret(v)}" oninput="this.value=fmtSiret(this.value);setLcb('c_rcs',this.value)"></div>`;
+  if(f.id==='c_capital') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${fmtCapital(v)}" oninput="capInput(this)"></div>`;
   if(f.k==='pays') return comboHTML(f,'risk');
   if(f.k==='secteur'){ return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.paysPh)}</option>${SECTEURS.map(s=>`<option ${v===s?'selected':''}>${s}</option>`).join('')}</select></div>`; }
   return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" value="${v}" oninput="setLcb('${f.id}',this.value)"></div>`;
@@ -977,6 +978,9 @@ function cbPick(fieldId,name){ state.lcb[fieldId]=name; renderLCB(); }
 /* Séparateurs SIREN (XXX XXX XXX) / SIRET (XXX XXX XXX XXX XX) */
 function fmtSiren(v){ const d=(v||'').replace(/\D/g,'').slice(0,9); return d.replace(/(\d{3})(\d{0,3})(\d{0,3})/, (m,a,b,c)=>[a,b,c].filter(x=>x!=='').join(' ')); }
 function fmtSiret(v){ const d=(v||'').replace(/\D/g,'').slice(0,14); return d.replace(/(\d{3})(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})/, (m,a,b,c,e,f)=>[a,b,c,e,f].filter(x=>x!=='').join(' ')); }
+/* Capital : 1 234 567 € (séparateurs de milliers + suffixe €, seulement si rempli) */
+function fmtCapital(v){ const d=(v||'').toString().replace(/[^\d]/g,''); if(!d) return ''; return d.replace(/\B(?=(\d{3})+(?!\d))/g,' ')+' €'; }
+function capInput(el){ el.value=fmtCapital(el.value); setLcb('c_capital',el.value); try{ el.setSelectionRange(el.value.length-2, el.value.length-2); }catch(_){ } }
 /* TVA FR : FR 00 000 000 000 (clé sur 2 + SIREN en 3-3-3) */
 function fmtTva(v){ v=(v||'').toUpperCase().replace(/[^A-Z0-9]/g,''); const cc=(v.match(/^[A-Z]{0,2}/)||[''])[0]; const d=v.slice(cc.length).replace(/\D/g,'').slice(0,11); if(!d) return cc; let out=[]; if(d.length>2){ out.push(d.slice(0,2)); (d.slice(2).match(/.{1,3}/g)||[]).forEach(g=>out.push(g)); } else out.push(d); return (cc?cc+' ':'')+out.join(' '); }
 
@@ -1097,7 +1101,7 @@ async function inpiAutofill(siren){
   try{
     const r=await fetch(CONFIG.ENDPOINT+(CONFIG.ENDPOINT.indexOf('?')<0?'?':'&')+'siren='+encodeURIComponent(String(siren).replace(/\D/g,'')),{method:'GET'});
     const j=await r.json();
-    if(j && j.capital!=null){ state.lcb.c_capital=String(Math.round(Number(j.capital))); if(state.dom&&document.getElementById('lcbBody')) renderLCB(); }
+    if(j && j.capital!=null){ state.lcb.c_capital=fmtCapital(String(Math.round(Number(j.capital)))); if(state.dom&&document.getElementById('lcbBody')) renderLCB(); }
   }catch(e){ /* silencieux : capital saisi manuellement */ }
 }
 function cbHide(fieldId){ setTimeout(()=>{ const b=document.getElementById(fieldId+'_list'); if(b) b.style.display='none'; const i=document.getElementById(fieldId+'_cb'); if(i) i.setAttribute('aria-expanded','false'); },160); }
