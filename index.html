@@ -353,7 +353,7 @@ body.dark .page-sub b{color:var(--ivoire)}
       <div class="row3">
         <div class="fg"><label class="fl" for="siren" data-i="f_siren">N° SIREN <span class="req">*</span></label><input class="finp" id="siren" inputmode="numeric" oninput="this.value=fmtSiren(this.value)"></div>
         <div class="fg"><label class="fl" for="siret" data-i="f_siret">N° SIRET <span class="req">*</span></label><input class="finp" id="siret" inputmode="numeric" oninput="this.value=fmtSiret(this.value)"></div>
-        <div class="fg"><label class="fl" for="tva" data-i="f_tva">N° TVA <span class="req">*</span></label><input class="finp" id="tva"></div>
+        <div class="fg"><label class="fl" for="tva" data-i="f_tva">N° TVA <span class="req">*</span></label><input class="finp" id="tva" oninput="this.value=fmtTva(this.value)"></div>
       </div>
       <div class="fg"><label class="fl" for="adresse" data-i="f_adresse">Adresse du siège social</label><input class="finp" id="adresse" autocomplete="street-address"></div>
       <div class="fg" id="rnaRow" style="display:none"><label class="fl" for="rna" data-i="f_rna">N° RNA — Répertoire National des Associations</label><input class="finp" id="rna" placeholder="W123456789"></div>
@@ -976,6 +976,8 @@ function cbPick(fieldId,name){ state.lcb[fieldId]=name; renderLCB(); }
 /* Séparateurs SIREN (XXX XXX XXX) / SIRET (XXX XXX XXX XXX XX) */
 function fmtSiren(v){ const d=(v||'').replace(/\D/g,'').slice(0,9); return d.replace(/(\d{3})(\d{0,3})(\d{0,3})/, (m,a,b,c)=>[a,b,c].filter(x=>x!=='').join(' ')); }
 function fmtSiret(v){ const d=(v||'').replace(/\D/g,'').slice(0,14); return d.replace(/(\d{3})(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})/, (m,a,b,c,e,f)=>[a,b,c,e,f].filter(x=>x!=='').join(' ')); }
+/* TVA FR : FR 00 000 000 000 (clé sur 2 + SIREN en 3-3-3) */
+function fmtTva(v){ v=(v||'').toUpperCase().replace(/[^A-Z0-9]/g,''); const cc=(v.match(/^[A-Z]{0,2}/)||[''])[0]; const d=v.slice(cc.length).replace(/\D/g,'').slice(0,11); if(!d) return cc; let out=[]; if(d.length>2){ out.push(d.slice(0,2)); (d.slice(2).match(/.{1,3}/g)||[]).forEach(g=>out.push(g)); } else out.push(d); return (cc?cc+' ':'')+out.join(' '); }
 
 /* ===== Recherche entreprise (API Recherche d'entreprises — data.gouv) ===== */
 let _coTimer=null, _coResults=[];
@@ -1023,13 +1025,13 @@ function fillFromCompany(r){
   setv('siret', fmtSiret(s.siret));
   setv('adresse', s.adresse);
   // N° TVA intracom français calculé depuis le SIREN
-  if(r.siren && /^\d{9}$/.test(r.siren)){ const n=parseInt(r.siren,10); const cle=(12+3*(n%97))%97; setv('tva','FR'+String(cle).padStart(2,'0')+r.siren); }
+  if(r.siren && /^\d{9}$/.test(r.siren)){ const n=parseInt(r.siren,10); const cle=(12+3*(n%97))%97; setv('tva',fmtTva('FR'+String(cle).padStart(2,'0')+r.siren)); }
   // Forme juridique
   const forme=mapForme(r.nature_juridique, comp); if(forme){ const fs=document.getElementById('forme'); if([...fs.options].some(o=>o.value===forme)) fs.value=forme; }
   // Représentant légal = 1er dirigeant personne physique
   const dirs=r.dirigeants||[];
   const dpp=dirs.find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
-  if(dpp){ setv('rlnom', dpp.nom); setv('rlprenom', dpp.prenoms); }
+  if(dpp){ setv('rlnom', dpp.nom); setv('rlprenom', dpp.prenoms); checkGerantMultiple(dpp.prenoms, dpp.nom, r.siren); }
   // Dirigeant(s) déclaré(s) — affiche PP et PM (utile quand le dirigeant est une société)
   const di=document.getElementById('dirInfo');
   if(di){ const list=dirs.map(d=>d.type_dirigeant==='personne morale' ? esc(d.denomination||'')+(d.qualite?' ('+esc(d.qualite)+')':'') : esc([d.prenoms,d.nom].filter(Boolean).join(' '))+(d.qualite?' ('+esc(d.qualite)+')':'')).filter(Boolean);
@@ -1048,14 +1050,32 @@ function fillFromCompany(r){
   if(r.date_creation) state.lcb.c_datecrea=r.date_creation;
   inpiAutofill(r.siren); // capital social via le backend (RNE/INPI), si déployé
 }
+/* Q5 — Le dirigeant gère-t-il plusieurs sociétés ? Recherche par dirigeant (API ouverte). */
+async function checkGerantMultiple(prenom, nom, curSiren){
+  if(!nom) return;
+  try{
+    const u='https://recherche-entreprises.api.gouv.fr/search?per_page=15&type_personne=dirigeant&etat_administratif=A&nom_personne='+encodeURIComponent(nom)+(prenom?'&prenoms_personne='+encodeURIComponent(prenom):'');
+    const r=await fetch(u,{headers:{'Accept':'application/json'}}); const j=await r.json();
+    const cur=String(curSiren||'').replace(/\D/g,'');
+    const others=(j.results||[]).filter(x=>x.siren!==cur);
+    if(others.length){ state.lcb.q5='oui'; state.lcb.q5_lesquelles=others.slice(0,12).map(x=>(x.nom_raison_sociale||x.nom_complet||'?')+' ('+x.siren+')').join('; '); }
+    else { state.lcb.q5='non'; }
+    if(state.dom && document.getElementById('lcbBody')) renderLCB();
+  }catch(e){ /* silencieux */ }
+}
 /* Récupère le capital social (RNE/INPI) via le proxy backend et pré-remplit la fiche. Sans effet si ENDPOINT non configuré. */
 async function inpiAutofill(siren){
   if(!CONFIG.ENDPOINT || !siren) return;
   try{
     const r=await fetch(CONFIG.ENDPOINT+(CONFIG.ENDPOINT.indexOf('?')<0?'?':'&')+'siren='+encodeURIComponent(String(siren).replace(/\D/g,'')),{method:'GET'});
     const j=await r.json();
-    if(j&&j.ok&&j.capital!=null){ state.lcb.c_capital=String(j.capital); if(state.dom&&document.getElementById('lcbBody')) renderLCB(); }
-  }catch(e){ /* silencieux : capital saisi manuellement */ }
+    if(j){
+      if(j.capital!=null) state.lcb.c_capital=String(j.capital);
+      if(j.statuts12m!=null) state.lcb.q8=j.statuts12m?'oui':'non';   // Q8 : statuts modifiés < 12 mois (RNE/Actes)
+      if(j.dirigeant12m!=null) state.lcb.q7=j.dirigeant12m?'oui':'non'; // Q7 : changement de dirigeant < 12 mois
+      if(state.dom&&document.getElementById('lcbBody')) renderLCB();
+    }
+  }catch(e){ /* silencieux : valeurs saisies manuellement */ }
 }
 function cbHide(fieldId){ setTimeout(()=>{ const b=document.getElementById(fieldId+'_list'); if(b) b.style.display='none'; const i=document.getElementById(fieldId+'_cb'); if(i) i.setAttribute('aria-expanded','false'); },160); }
 function setYN(id,v){ state.lcb[id]=v; renderLCB(); }
@@ -1249,7 +1269,7 @@ function buildPayload(){
     meta:{
       rattachement:CENTRES.find(c=>c.id===val('centre'))||null,
       domiciliation:state.dom, entity:state.entity, etranger:state.etranger, loi1901:state.loi1901,
-      raison:val('raison'), forme:val('forme'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''), tva:val('tva'), rna:val('rna'), adresse:val('adresse'),
+      raison:val('raison'), forme:val('forme'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), rna:val('rna'), adresse:val('adresse'),
       rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:val('tel')},
       ppe:document.querySelector('input[name=ppe]:checked').value,
       beneficiaires:state.bes.filter(b=>b.nom).map(b=>({prenom:b.prenom,nom:b.nom,pct:b.pct,tel:b.tel,email:b.email,domicile:[b.rue,b.cp,b.ville,b.pays].filter(Boolean).join(', ')})),
