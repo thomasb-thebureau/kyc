@@ -283,6 +283,11 @@ body.dark .badge.recent{color:#e0a36a}
 .flag{width:18px;height:auto;border-radius:1px;border:1px solid rgba(15,15,15,.08);vertical-align:middle;flex-shrink:0}
 body.dark .flag{border-color:rgba(255,255,255,.12)}
 #centre.chosen{color:var(--vert);font-weight:600;border-color:var(--vert);background-color:var(--vp)}
+.dirchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--cfield);background:var(--blanc);color:var(--encre);border-radius:50px;padding:4px 11px;font:600 11.5px 'Plus Jakarta Sans';cursor:pointer;margin:4px 4px 0 0;transition:all .15s}
+.dirchip:hover{border-color:var(--vert);color:var(--vert)}
+.dirchip.on{background:var(--vert);border-color:var(--vert);color:#fff}
+.dirchip .dirq{font-weight:400;opacity:.78;font-size:10.5px}
+.dirpm{display:inline-block;color:var(--gris);font-size:11.5px;margin:4px 4px 0 0}
 .page-sub b{color:var(--encre);font-weight:600}
 body.dark .page-sub b{color:var(--ivoire)}
 .ahint{font-size:11px;color:var(--orAA);margin-top:8px;background:var(--op);border-radius:7px;padding:7px 10px}
@@ -655,6 +660,7 @@ const I18N = {
   f_adresse:{fr:'Adresse du siège social',en:'Registered-office address'},
   f_adresse_hint:{fr:'Renseignée automatiquement d\'après le numéro de SIRET ; si elle a changé récemment, la mise à jour se fait automatiquement.',en:'Auto-filled from the SIRET number; if it has changed recently, the update is automatic.'},
   dir_label:{fr:'Dirigeant(s) déclaré(s)',en:'Declared director(s)'},
+  dir_pick:{fr:'Cliquez pour désigner le représentant légal',en:'Click to set the legal representative'},
   f_raison:{fr:'Dénomination sociale <span class="req">*</span>',en:'Legal name <span class="req">*</span>'},
   f_forme:{fr:'Forme juridique <span class="req">*</span>',en:'Legal form <span class="req">*</span>'},f_siren:{fr:'N° SIREN <span class="req">*</span>',en:'SIREN no. <span class="req">*</span>'},f_siret:{fr:'N° SIRET <span class="req">*</span>',en:'SIRET no. <span class="req">*</span>'},f_tva:{fr:'N° TVA <span class="req">*</span>',en:'VAT no. <span class="req">*</span>'},
   forme_ph:{fr:'Sélectionnez…',en:'Select…'},forme_autre:{fr:'Autre',en:'Other'},
@@ -1135,10 +1141,8 @@ function fillFromCompany(r){
   const dirs=r.dirigeants||[];
   const dpp=dirs.find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
   if(dpp){ setv('rlnom', dpp.nom); setv('rlprenom', dpp.prenoms); checkGerantMultiple(dpp.prenoms, dpp.nom, r.siren); }
-  // Dirigeant(s) déclaré(s) — affiche PP et PM (utile quand le dirigeant est une société)
-  const di=document.getElementById('dirInfo');
-  if(di){ const list=dirs.map(d=>d.type_dirigeant==='personne morale' ? esc(d.denomination||'')+(d.qualite?' ('+esc(d.qualite)+')':'') : esc([d.prenoms,d.nom].filter(Boolean).join(' '))+(d.qualite?' ('+esc(d.qualite)+')':'')).filter(Boolean);
-    if(list.length){ di.innerHTML='<b>'+t('dir_label')+' :</b> '+list.join(' · '); di.style.display='block'; } else di.style.display='none'; }
+  // Dirigeant(s) déclaré(s) — chips cliquables : on peut désigner le représentant légal
+  state.dirigeants=dirs; renderDirChips();
   // Type de structure déduit automatiquement de l'API
   state.entity=mapEntity(r); renderEntities();
   document.getElementById('loiRow').style.display=(state.entity==='asso')?'flex':'none';
@@ -1155,6 +1159,31 @@ function fillFromCompany(r){
   inpiAutofill(r.siren); // capital social via le backend (RNE/INPI), si déployé
   checkBodacc(r.siren);  // Q7/Q8 (dirigeant/statuts) via BODACC
   autoFetchDocs(r.siren); // Extrait RNE + statuts + PV récupérés et versés dans les pièces
+}
+/* Dirigeants déclarés (data.gouv) — chips cliquables. Les personnes physiques sont
+   sélectionnables comme représentant légal ; les personnes morales restent en texte. */
+function renderDirChips(){
+  const di=document.getElementById('dirInfo'); if(!di) return;
+  const dirs=state.dirigeants||[];
+  if(!dirs.length){ di.style.display='none'; di.innerHTML=''; return; }
+  const cur=((val('rlprenom')||'')+'|'+(val('rlnom')||'')).toUpperCase();
+  const parts=dirs.map((d,i)=>{
+    const isPP=d.type_dirigeant!=='personne morale' && (d.prenoms||d.nom);
+    if(!isPP){ const nm=esc(d.denomination||'')+(d.qualite?' ('+esc(d.qualite)+')':''); return nm?`<span class="dirpm">${nm}</span>`:''; }
+    const nm=esc([d.prenoms,d.nom].filter(Boolean).join(' '));
+    const sel=((d.prenoms||'')+'|'+(d.nom||'')).toUpperCase()===cur;
+    return `<button type="button" class="dirchip${sel?' on':''}" onclick="pickDir(${i})" aria-pressed="${sel}">${nm}${d.qualite?` <span class="dirq">(${esc(d.qualite)})</span>`:''}</button>`;
+  }).filter(Boolean);
+  di.innerHTML='<b>'+t('dir_pick')+' :</b><br>'+parts.join(' ');
+  di.style.display='block';
+}
+/* Désigne un dirigeant déclaré comme représentant légal (remplit prénom + nom). */
+function pickDir(i){
+  const d=(state.dirigeants||[])[i]; if(!d) return;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=(v||'').toUpperCase(); };
+  set('rlprenom', d.prenoms||''); set('rlnom', d.nom||'');
+  renderDirChips();
+  checkGerantMultiple(d.prenoms||'', d.nom||'', (val('siren')||'').replace(/\s/g,''));
 }
 /* Q5 — Le dirigeant gère-t-il plusieurs sociétés ? Recherche par dirigeant (API ouverte). */
 async function checkGerantMultiple(prenom, nom, curSiren){
