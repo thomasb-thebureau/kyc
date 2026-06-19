@@ -349,10 +349,11 @@ body.dark .page-sub b{color:var(--ivoire)}
         </div>
       </div>
       <div class="row3">
-        <div class="fg"><label class="fl" for="siren" data-i="f_siren">N° SIREN <span class="req">*</span></label><input class="finp" id="siren" inputmode="numeric"></div>
-        <div class="fg"><label class="fl" for="siret" data-i="f_siret">N° SIRET <span class="req">*</span></label><input class="finp" id="siret" inputmode="numeric"></div>
+        <div class="fg"><label class="fl" for="siren" data-i="f_siren">N° SIREN <span class="req">*</span></label><input class="finp" id="siren" inputmode="numeric" oninput="this.value=fmtSiren(this.value)"></div>
+        <div class="fg"><label class="fl" for="siret" data-i="f_siret">N° SIRET <span class="req">*</span></label><input class="finp" id="siret" inputmode="numeric" oninput="this.value=fmtSiret(this.value)"></div>
         <div class="fg"><label class="fl" for="tva" data-i="f_tva">N° TVA <span class="req">*</span></label><input class="finp" id="tva"></div>
       </div>
+      <div class="fg"><label class="fl" for="adresse" data-i="f_adresse">Adresse du siège social</label><input class="finp" id="adresse" autocomplete="street-address"></div>
       <div class="fg" id="rnaRow" style="display:none"><label class="fl" for="rna" data-i="f_rna">N° RNA — Répertoire National des Associations</label><input class="finp" id="rna" placeholder="W123456789"></div>
       <h3 class="sec" style="margin-top:10px" data-i="sec_rl">Représentant légal</h3>
       <div class="row2">
@@ -363,6 +364,7 @@ body.dark .page-sub b{color:var(--ivoire)}
         <div class="fg"><label class="fl" for="email" data-i="f_email">Email <span class="req">*</span></label><input class="finp" id="email" type="email" autocomplete="email"></div>
         <div class="fg"><label class="fl" for="tel" data-i="f_tel">Téléphone <span class="req">*</span></label><input class="finp" id="tel" type="tel" autocomplete="tel"></div>
       </div>
+      <p class="hint" id="dirInfo" style="display:none;margin-top:2px"></p>
       <p class="err-msg" id="err0" role="alert"></p>
     </div>
 
@@ -614,6 +616,8 @@ const I18N = {
   f_cosearch:{fr:'Rechercher mon entreprise (nom, SIREN ou SIRET)',en:'Find my company (name, SIREN or SIRET)'},
   cosearch_hint:{fr:'Pré-remplit automatiquement les champs ci-dessous · source : Annuaire des Entreprises (data.gouv).',en:'Auto-fills the fields below · source: French company directory (data.gouv).'},
   cosearch_empty:{fr:'Aucun résultat',en:'No result'},
+  f_adresse:{fr:'Adresse du siège social',en:'Registered-office address'},
+  dir_label:{fr:'Dirigeant(s) déclaré(s)',en:'Declared director(s)'},
   f_raison:{fr:'Dénomination sociale <span class="req">*</span>',en:'Legal name <span class="req">*</span>'},
   f_forme:{fr:'Forme juridique <span class="req">*</span>',en:'Legal form <span class="req">*</span>'},f_siren:{fr:'N° SIREN <span class="req">*</span>',en:'SIREN no. <span class="req">*</span>'},f_siret:{fr:'N° SIRET <span class="req">*</span>',en:'SIRET no. <span class="req">*</span>'},f_tva:{fr:'N° TVA <span class="req">*</span>',en:'VAT no. <span class="req">*</span>'},
   forme_ph:{fr:'Sélectionnez…',en:'Select…'},forme_autre:{fr:'Autre',en:'Other'},
@@ -965,6 +969,10 @@ function cbKey(e,fieldId,scope){
 }
 function cbPick(fieldId,name){ state.lcb[fieldId]=name; renderLCB(); }
 
+/* Séparateurs SIREN (XXX XXX XXX) / SIRET (XXX XXX XXX XXX XX) */
+function fmtSiren(v){ const d=(v||'').replace(/\D/g,'').slice(0,9); return d.replace(/(\d{3})(\d{0,3})(\d{0,3})/, (m,a,b,c)=>[a,b,c].filter(x=>x!=='').join(' ')); }
+function fmtSiret(v){ const d=(v||'').replace(/\D/g,'').slice(0,14); return d.replace(/(\d{3})(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})/, (m,a,b,c,e,f)=>[a,b,c,e,f].filter(x=>x!=='').join(' ')); }
+
 /* ===== Recherche entreprise (API Recherche d'entreprises — data.gouv) ===== */
 let _coTimer=null, _coResults=[];
 function coSearchDebounced(){ clearTimeout(_coTimer); _coTimer=setTimeout(coSearch,350); }
@@ -977,7 +985,7 @@ async function coSearch(){
     if(!r.ok) throw new Error(r.status);
     const j=await r.json(); _coResults=j.results||[];
     box.innerHTML=_coResults.length
-      ? _coResults.map((x,i)=>{ const s=x.siege||{}; return `<div class="cb-opt cs-opt" role="option" onmousedown="coPick(${i})"><b>${esc(x.nom_raison_sociale||x.nom_complet||'—')}</b><br><small>${x.siren||''}${s.libelle_commune?' · '+esc(s.libelle_commune):''} ${s.code_postal||''}</small></div>`; }).join('')
+      ? _coResults.map((x,i)=>{ const s=x.siege||{}; return `<div class="cb-opt cs-opt" role="option" onmousedown="coPick(${i})"><b>${esc(x.nom_raison_sociale||x.nom_complet||'—')}</b><br><small>${fmtSiren(x.siren||'')}${s.adresse?' · '+esc(s.adresse):''}</small></div>`; }).join('')
       : `<div class="cs-empty">${t('cosearch_empty')}</div>`;
     box.style.display='block'; inp.setAttribute('aria-expanded','true');
   }catch(e){ box.style.display='none'; }
@@ -1007,15 +1015,21 @@ function fillFromCompany(r){
   const s=r.siege||{}, comp=r.complements||{};
   const setv=(id,v)=>{ const el=document.getElementById(id); if(el&&v!=null&&v!=='') el.value=v; };
   setv('raison', r.nom_raison_sociale||r.nom_complet);
-  setv('siren', r.siren);
-  setv('siret', s.siret);
+  setv('siren', fmtSiren(r.siren));
+  setv('siret', fmtSiret(s.siret));
+  setv('adresse', s.adresse);
   // N° TVA intracom français calculé depuis le SIREN
   if(r.siren && /^\d{9}$/.test(r.siren)){ const n=parseInt(r.siren,10); const cle=(12+3*(n%97))%97; setv('tva','FR'+String(cle).padStart(2,'0')+r.siren); }
   // Forme juridique
   const forme=mapForme(r.nature_juridique, comp); if(forme){ const fs=document.getElementById('forme'); if([...fs.options].some(o=>o.value===forme)) fs.value=forme; }
   // Représentant légal = 1er dirigeant personne physique
-  const dpp=(r.dirigeants||[]).find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
+  const dirs=r.dirigeants||[];
+  const dpp=dirs.find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
   if(dpp){ setv('rlnom', dpp.nom); setv('rlprenom', dpp.prenoms); }
+  // Dirigeant(s) déclaré(s) — affiche PP et PM (utile quand le dirigeant est une société)
+  const di=document.getElementById('dirInfo');
+  if(di){ const list=dirs.map(d=>d.type_dirigeant==='personne morale' ? esc(d.denomination||'')+(d.qualite?' ('+esc(d.qualite)+')':'') : esc([d.prenoms,d.nom].filter(Boolean).join(' '))+(d.qualite?' ('+esc(d.qualite)+')':'')).filter(Boolean);
+    if(list.length){ di.innerHTML='<b>'+t('dir_label')+' :</b> '+list.join(' · '); di.style.display='block'; } else di.style.display='none'; }
   // Type de structure + RNA si association
   if(comp.est_association){ state.entity='asso'; renderEntities(); document.getElementById('loiRow').style.display='flex'; if(comp.identifiant_association){ state.loi1901=true; const li=document.getElementById('loi1901'); if(li) li.checked=true; document.getElementById('loiSw').classList.add('on'); } }
   updateRnaRow(); updateAsso(); renderDocs();
@@ -1221,7 +1235,7 @@ function buildPayload(){
     meta:{
       rattachement:CENTRES.find(c=>c.id===val('centre'))||null,
       domiciliation:state.dom, entity:state.entity, etranger:state.etranger, loi1901:state.loi1901,
-      raison:val('raison'), forme:val('forme'), siren:val('siren'), siret:val('siret'), tva:val('tva'), rna:val('rna'),
+      raison:val('raison'), forme:val('forme'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''), tva:val('tva'), rna:val('rna'), adresse:val('adresse'),
       rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:val('tel')},
       ppe:document.querySelector('input[name=ppe]:checked').value,
       beneficiaires:state.bes.filter(b=>b.nom).map(b=>({prenom:b.prenom,nom:b.nom,pct:b.pct,tel:b.tel,email:b.email,domicile:[b.rue,b.cp,b.ville,b.pays].filter(Boolean).join(', ')})),
