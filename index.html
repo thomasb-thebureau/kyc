@@ -406,14 +406,20 @@ body.dark .page-sub b{color:var(--ivoire)}
       <p class="hint" id="dirInfo" style="display:none;margin-top:2px"></p>
 
       <h3 class="sec" style="margin-top:14px" data-i="sec_owner">Contact propriétaire</h3>
-      <p class="hint" data-i="owner_hint" style="margin-top:-2px">Titulaire du compte chez The Bureau (peut différer du gérant). Sert à créer et mettre à jour la fiche client dans notre système. Laissez vide si identique au gérant.</p>
-      <div class="row2">
-        <div class="fg"><label class="fl" for="ownerPrenom" data-i="of_prenom">Prénom</label><input class="finp" id="ownerPrenom" autocomplete="given-name"></div>
-        <div class="fg"><label class="fl" for="ownerNom" data-i="of_nom">Nom</label><input class="finp" id="ownerNom" autocomplete="family-name"></div>
-      </div>
-      <div class="row2">
-        <div class="fg"><label class="fl" for="ownerEmail" data-i="of_email">Email</label><input class="finp" id="ownerEmail" type="email" autocomplete="email"></div>
-        <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone</label><input class="finp" id="ownerTel" type="tel" autocomplete="tel"></div>
+      <p class="hint" data-i="owner_hint" style="margin-top:-2px">Titulaire du compte chez The Bureau (peut différer du gérant).</p>
+      <label style="display:flex;align-items:center;gap:8px;margin:6px 0 6px;cursor:pointer;font-size:13.5px;color:var(--encre)">
+        <input type="checkbox" id="ownerSame" checked onchange="toggleOwnerSame()" style="width:16px;height:16px;accent-color:var(--vert)">
+        <span data-i="owner_same">Identique au représentant légal</span>
+      </label>
+      <div id="ownerFields" style="display:none">
+        <div class="row2">
+          <div class="fg"><label class="fl" for="ownerPrenom" data-i="of_prenom">Prénom</label><input class="finp" id="ownerPrenom" autocomplete="given-name"></div>
+          <div class="fg"><label class="fl" for="ownerNom" data-i="of_nom">Nom</label><input class="finp" id="ownerNom" autocomplete="family-name"></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label class="fl" for="ownerEmail" data-i="of_email">Email</label><input class="finp" id="ownerEmail" type="email" autocomplete="email"></div>
+          <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone</label><input class="finp" id="ownerTel" type="tel" autocomplete="tel"></div>
+        </div>
       </div>
       <p class="err-msg" id="err0" role="alert"></p>
     </div>
@@ -678,7 +684,8 @@ const I18N = {
   f_rna:{fr:'N° RNA — Répertoire National des Associations',en:'RNA number — national associations register'},
   sec_rl:{fr:'Représentant légal',en:'Legal representative'},
   sec_owner:{fr:'Contact propriétaire',en:'Account owner contact'},
-  owner_hint:{fr:'Titulaire du compte chez The Bureau (peut différer du gérant). Sert à créer et mettre à jour la fiche client dans notre système. Laissez vide si identique au gérant.',en:'Account holder at The Bureau (may differ from the legal rep). Used to create and update the client record in our system. Leave blank if same as the legal rep.'},
+  owner_hint:{fr:'Titulaire du compte chez The Bureau (peut différer du gérant).',en:'Account holder at The Bureau (may differ from the legal rep).'},
+  owner_same:{fr:'Identique au représentant légal',en:'Same as legal representative'},
   of_prenom:{fr:'Prénom',en:'First name'},of_nom:{fr:'Nom',en:'Last name'},of_email:{fr:'Email',en:'Email'},of_tel:{fr:'Téléphone',en:'Phone'},
   f_prenom:{fr:'Prénom <span class="req">*</span>',en:'First name <span class="req">*</span>'},f_nom:{fr:'Nom <span class="req">*</span>',en:'Last name <span class="req">*</span>'},
   f_email:{fr:'Email <span class="req">*</span>',en:'Email <span class="req">*</span>'},f_tel:{fr:'Téléphone <span class="req">*</span>',en:'Phone <span class="req">*</span>'},
@@ -1464,13 +1471,21 @@ async function submitDossier(){
     window.scrollTo({top:0,behavior:'smooth'});
   }catch(e){ btn.disabled=false; const el=document.getElementById('err3'); el.textContent='⚠ '+(state.lang==='en'?'Sending failed, please retry.':'Échec de l\'envoi, merci de réessayer.'); el.classList.add('on'); }
 }
+/* Contact propriétaire : case « identique au représentant légal » -> masque/affiche les champs. */
+function toggleOwnerSame(){ var c=document.getElementById('ownerSame'), f=document.getElementById('ownerFields'); if(f) f.style.display=(!c||c.checked)?'none':'block'; }
+/* Valeurs du contact propriétaire : si « identique », on reprend le représentant légal. */
+function ownerVals_(){ var c=document.getElementById('ownerSame'); var same=!c||c.checked;
+  var pr=same?val('rlprenom'):val('ownerPrenom'), no=same?val('rlnom'):val('ownerNom'), em=same?val('email'):val('ownerEmail'), te=same?val('tel'):val('ownerTel');
+  return {prenom:pr, nom:no, contact:[pr,no].filter(Boolean).join(' '), email:em, tel:te}; }
+
 /* === Création de compte (Archie + Drive) + enregistrement progressif — modes /maj et normal === */
 function createAccount(){
   if(!CONFIG.ENDPOINT || state.archieUuid || state.creating || !val('raison')) return;
   state.creating=true;
+  const ow=ownerVals_();
   const b={action:'create', raison:val('raison'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''),
            email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), tel:val('tel'),
-           ownerContact:[val('ownerPrenom'),val('ownerNom')].filter(Boolean).join(' '), ownerEmail:val('ownerEmail'), ownerTel:val('ownerTel'),
+           ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
            centre:val('centre'), dom:state.dom?1:0};
   fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
     .then(r=>r.json()).then(j=>{ if(j&&j.uuid) state.archieUuid=j.uuid; state.creating=false; })
@@ -1481,10 +1496,11 @@ function createAccount(){
 function autoSave_(){
   try{
     if(!CONFIG.ENDPOINT || !val('raison')) return;
+    const ow=ownerVals_();
     const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
              siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
              email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
-             ownerContact:[val('ownerPrenom'),val('ownerNom')].filter(Boolean).join(' '), ownerEmail:val('ownerEmail'), ownerTel:val('ownerTel'),
+             ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
              centre:val('centre'), dom:state.dom?1:0, files:[]};
     fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
       .then(function(r){return r.json();}).then(function(j){ if(j&&j.uuid) state.archieUuid=j.uuid; toastSave_(state.lang==='en'?'✓ Saved':'✓ Enregistré'); }).catch(function(){});
@@ -1499,10 +1515,11 @@ async function saveProgress(btn){
       // SAUF les pièces déjà chargées depuis Archie (fromArchie) — elles y sont déjà.
       const ids=currentDocIds(), files=[];
       for(const id of ids){ const f=state.files[id]; if(f&&f.blob&&!f.fromArchie){ files.push({docId:id, name:fmtFileName(id,f.name), mimeType:f.blob.type||'application/pdf', dataB64:await readB64(f.blob)}); } }
+      const ow=ownerVals_();
       const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
                siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
                email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
-               ownerContact:[val('ownerPrenom'),val('ownerNom')].filter(Boolean).join(' '), ownerEmail:val('ownerEmail'), ownerTel:val('ownerTel'),
+               ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
                centre:val('centre'), dom:state.dom?1:0, files:files};
       const r=await fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});
       const j=await r.json(); if(j&&j.uuid) state.archieUuid=j.uuid;
@@ -1520,7 +1537,7 @@ function buildPayload(){
       domiciliation:state.dom, entity:state.entity, etranger:state.etranger, loi1901:state.loi1901,
       raison:val('raison'), forme:val('forme'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), rna:val('rna'), adresse:val('adresse'),
       rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:val('tel')},
-      owner:{prenom:val('ownerPrenom'),nom:val('ownerNom'),email:val('ownerEmail'),tel:val('ownerTel')},
+      owner:(function(o){return {prenom:o.prenom,nom:o.nom,email:o.email,tel:o.tel};})(ownerVals_()),
       ppe:document.querySelector('input[name=ppe]:checked').value,
       beneficiaires:state.bes.filter(b=>b.nom).map(b=>({prenom:b.prenom,nom:b.nom,pct:b.pct,tel:b.tel,email:b.email,domicile:[b.rue,b.cp,b.ville,b.pays].filter(Boolean).join(', ')})),
       sanction:document.getElementById('sanction').checked,
@@ -1567,7 +1584,7 @@ function prefillFromURL(){
     var p=new URLSearchParams(location.search);
     var siren=(p.get('siren')||'').replace(/\D/g,'');
     var raison=p.get('raison')||'', email=p.get('email')||'', tel=p.get('tel')||'',
-        centre=p.get('centre')||'', contact=p.get('contact')||'',
+        centre=p.get('centre')||'', contact=p.get('contact')||'', owner=p.get('owner')||'',
         dom=p.get('dom')||'', u=p.get('u')||'';
     if(!siren && !raison && !email) return;   // lien standard -> aucun pré-remplissage
     if(u) state.archieUuid=u;                 // mode /maj : le compte Archie existe déjà
@@ -1576,6 +1593,10 @@ function prefillFromURL(){
     if(dom==='1'||dom==='oui'||dom==='Oui') setDom(true); else if(dom==='0'||dom==='non'||dom==='Non') setDom(false);
     setv('raison',raison); setv('email',email); setv('tel',tel);
     if(contact){ var pa=contact.trim().split(/\s+/); if(pa.length>=2){ setv('rlprenom',pa[0]); setv('rlnom',pa.slice(1).join(' ')); } }
+    // Contact propriétaire : pré-rempli depuis le tableau ; si ≠ représentant légal -> décoche « identique » et affiche
+    if(owner){ var op=owner.trim().split(/\s+/); setv('ownerPrenom',op[0]||''); setv('ownerNom',op.slice(1).join(' ')); setv('ownerEmail',email); setv('ownerTel',tel);
+      var same=document.getElementById('ownerSame');
+      if(same && owner.trim().toUpperCase()!==contact.trim().toUpperCase()){ same.checked=false; toggleOwnerSame(); } }
     majBanner_(raison, contact);
     if(/^\d{9}$/.test(siren)){
       fetch('https://recherche-entreprises.api.gouv.fr/search?per_page=1&q='+siren)
