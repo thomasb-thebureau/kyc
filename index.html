@@ -283,8 +283,9 @@ body.dark .badge.recent{color:#e0a36a}
 .flag{width:18px;height:auto;border-radius:1px;border:1px solid rgba(15,15,15,.08);vertical-align:middle;flex-shrink:0}
 body.dark .flag{border-color:rgba(255,255,255,.12)}
 /* Sélecteur d'indicatif (drapeaux images + recherche) */
-.dialpick{position:relative;flex:0 0 auto}
-.dialtrig{display:flex;align-items:center;justify-content:flex-start;min-width:96px;cursor:pointer;padding:0 10px}
+.dialhost{display:flex;align-self:stretch}
+.dialpick{position:relative;flex:0 0 auto;display:flex}
+.dialtrig{display:flex;align-items:center;justify-content:center;gap:2px;min-width:92px;width:100%;cursor:pointer;padding:0 10px;line-height:1}
 .dialpop{position:absolute;z-index:60;top:calc(100% + 4px);left:0;width:240px;max-height:280px;overflow-y:auto;background:var(--blanc);border:1px solid var(--cf);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.18);padding:8px}
 body.dark .dialpop{background:#23272e;border-color:rgba(255,255,255,.12)}
 .dialsearch{width:100%;margin-bottom:6px;height:34px;padding:0 10px}
@@ -402,7 +403,7 @@ body.dark .page-sub b{color:var(--ivoire)}
         <div class="fg"><label class="fl" for="siret" data-i="f_siret">N° SIRET <span class="req">*</span></label><input class="finp" id="siret" inputmode="numeric" oninput="this.value=fmtSiret(this.value)"></div>
         <div class="fg"><label class="fl" for="tva" data-i="f_tva">N° TVA <span class="req">*</span></label><input class="finp" id="tva" oninput="this.value=fmtTva(this.value)"></div>
       </div>
-      <div class="fg"><label class="fl" for="adresse" data-i="f_adresse">Adresse du siège social</label><input class="finp" id="adresse" autocomplete="street-address"><div class="ahint" data-i="f_adresse_hint">Renseignée automatiquement d'après le numéro de SIRET ; si elle a changé récemment, la mise à jour se fait automatiquement.</div></div>
+      <div class="fg"><label class="fl" for="adresse" data-i="f_adresse">Adresse du siège social</label><input class="finp" id="adresse" autocomplete="off" oninput="banInput(this,'siege')" onblur="banBlur()"><div class="ahint" data-i="f_adresse_hint">Renseignée automatiquement d'après le numéro de SIRET ; si elle a changé récemment, la mise à jour se fait automatiquement.</div></div>
       <div class="fg" id="rnaRow" style="display:none"><label class="fl" for="rna" data-i="f_rna">N° RNA — Répertoire National des Associations</label><input class="finp" id="rna" placeholder="W123456789"></div>
       <h3 class="sec" style="margin-top:10px" data-i="sec_rl">Représentant légal</h3>
       <div class="row2">
@@ -1314,6 +1315,7 @@ function attachPlaces(){
 /* Écrit une adresse (rue/cp/ville/pays) dans la bonne cible : 'be:N' (bénéficiaire) ou un champ LCB. */
 function setAddress(target, a){
   const up=s=>String(s||'').toUpperCase();
+  if(target==='siege'){ const inp=document.getElementById('adresse'); if(inp){ inp.value=up([a.rue,[a.cp,a.ville].filter(Boolean).join(' '),(a.pays&&!/^france$/i.test(a.pays))?a.pays:''].filter(Boolean).join(', ')); } return; }
   if(target.indexOf('be:')===0){ const b=state.bes[parseInt(target.slice(3),10)]; if(b){ b.rue=up(a.rue); b.cp=a.cp||''; b.ville=up(a.ville); b.pays=up(a.pays); } renderBE(); }
   else { state.lcb[target+'_rue']=up(a.rue); state.lcb[target+'_cp']=a.cp||''; state.lcb[target+'_ville']=up(a.ville); state.lcb[target+'_pays']=up(a.pays); renderLCB(); }
 }
@@ -1326,17 +1328,34 @@ async function banSearch(){
   const inp=_banInput, box=banBox(); if(!inp) return;
   const q=(inp.value||'').trim();
   if(q.length<4){ box.style.display='none'; return; }
+  let out=[];
+  // 1) France — Base Adresse Nationale (très précis pour les adresses françaises)
   try{
     const r=await fetch('https://api-adresse.data.gouv.fr/search/?limit=5&autocomplete=1&q='+encodeURIComponent(q));
-    const j=await r.json(); _banResults=j.features||[];
-    if(!_banResults.length){ box.style.display='none'; return; }
-    box.innerHTML=_banResults.map((f,i)=>`<div class="ban-opt" onmousedown="banPick(${i})">${esc(f.properties.label)}</div>`).join('');
-    const rect=inp.getBoundingClientRect();
-    box.style.left=(rect.left+window.scrollX)+'px'; box.style.top=(rect.bottom+window.scrollY+4)+'px'; box.style.width=rect.width+'px';
-    box.style.display='block';
-  }catch(e){ box.style.display='none'; }
+    const j=await r.json();
+    (j.features||[]).forEach(f=>{ const p=f.properties||{}; out.push({label:p.label||'',rue:p.name||'',cp:p.postcode||'',ville:p.city||'',pays:'France'}); });
+  }catch(e){}
+  // 2) Monde entier — Photon (OpenStreetMap, CORS, gratuit)
+  try{
+    let lang=(window.LANG||document.documentElement.lang||'fr'); lang=/en/i.test(lang)?'en':'fr';
+    const r2=await fetch('https://photon.komoot.io/api/?limit=6&lang='+lang+'&q='+encodeURIComponent(q));
+    const j2=await r2.json();
+    (j2.features||[]).forEach(f=>{ const p=f.properties||{};
+      const rue=[p.housenumber,p.street||p.name].filter(Boolean).join(' ');
+      const ville=p.city||p.district||p.county||p.name||'';
+      const label=[rue||p.name,[p.postcode,ville].filter(Boolean).join(' '),p.country].filter(Boolean).join(', ');
+      out.push({label,rue:rue||p.name||'',cp:p.postcode||'',ville,pays:p.country||''});
+    });
+  }catch(e){}
+  // dédup par libellé (France d'abord), max 8
+  const seen={}; _banResults=out.filter(o=>{ const k=(o.label||'').toLowerCase(); if(!o.label||seen[k]) return false; seen[k]=1; return true; }).slice(0,8);
+  if(!_banResults.length){ box.style.display='none'; return; }
+  box.innerHTML=_banResults.map((o,i)=>`<div class="ban-opt" onmousedown="banPick(${i})">${esc(o.label)}</div>`).join('');
+  const rect=inp.getBoundingClientRect();
+  box.style.left=(rect.left+window.scrollX)+'px'; box.style.top=(rect.bottom+window.scrollY+4)+'px'; box.style.width=rect.width+'px';
+  box.style.display='block';
 }
-function banPick(i){ const f=_banResults[i]; if(!f) return; const p=f.properties; setAddress(_banTarget,{rue:p.name||'',cp:p.postcode||'',ville:p.city||'',pays:'France'}); banBox().style.display='none'; }
+function banPick(i){ const o=_banResults[i]; if(!o) return; setAddress(_banTarget,{rue:o.rue,cp:o.cp,ville:o.ville,pays:o.pays}); banBox().style.display='none'; }
 function banBlur(){ setTimeout(()=>{ const b=document.getElementById('adrAC'); if(b) b.style.display='none'; },180); }
 
 /* Renvoie la liste des ids requis selon les réponses visibles */
