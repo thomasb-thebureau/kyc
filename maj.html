@@ -418,7 +418,27 @@ body.dark .page-sub b{color:var(--ivoire)}
         </div>
         <div class="row2">
           <div class="fg"><label class="fl" for="ownerEmail" data-i="of_email">Email</label><input class="finp" id="ownerEmail" type="email" autocomplete="email"></div>
-          <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone</label><input class="finp" id="ownerTel" type="tel" autocomplete="tel"></div>
+          <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone</label>
+            <div style="display:flex;gap:6px">
+              <select class="fsel" id="ownerCC" style="max-width:128px;flex:0 0 auto">
+                <option value="FR" selected>🇫🇷 +33</option>
+                <option value="BE">🇧🇪 +32</option>
+                <option value="CH">🇨🇭 +41</option>
+                <option value="LU">🇱🇺 +352</option>
+                <option value="MC">🇲🇨 +377</option>
+                <option value="GB">🇬🇧 +44</option>
+                <option value="IE">🇮🇪 +353</option>
+                <option value="DE">🇩🇪 +49</option>
+                <option value="ES">🇪🇸 +34</option>
+                <option value="IT">🇮🇹 +39</option>
+                <option value="NL">🇳🇱 +31</option>
+                <option value="PT">🇵🇹 +351</option>
+                <option value="US">🇺🇸 +1</option>
+                <option value="MA">🇲🇦 +212</option>
+              </select>
+              <input class="finp" id="ownerTel" type="tel" autocomplete="tel" style="flex:1" placeholder="07 86 81 73 49">
+            </div>
+          </div>
         </div>
       </div>
       <p class="err-msg" id="err0" role="alert"></p>
@@ -1474,10 +1494,16 @@ async function submitDossier(){
 }
 /* Contact propriétaire : case « identique au représentant légal » -> masque/affiche les champs. */
 function toggleOwnerSame(){ var c=document.getElementById('ownerSame'), f=document.getElementById('ownerFields'); if(f) f.style.display=(!c||c.checked)?'none':'block'; }
-/* Valeurs du contact propriétaire : si « identique », on reprend le représentant légal. */
+/* Valeurs du contact propriétaire : si « identique », on reprend le représentant légal.
+   Sinon le téléphone = indicatif (sélecteur) + numéro (sans double préfixe si déjà en +xx). */
+var OWNER_DIAL={FR:'33',BE:'32',CH:'41',LU:'352',MC:'377',GB:'44',IE:'353',DE:'49',ES:'34',IT:'39',NL:'31',PT:'351',US:'1',MA:'212'};
 function ownerVals_(){ var c=document.getElementById('ownerSame'); var same=!c||c.checked;
-  var pr=same?val('rlprenom'):val('ownerPrenom'), no=same?val('rlnom'):val('ownerNom'), em=same?val('email'):val('ownerEmail'), te=same?val('tel'):val('ownerTel');
-  return {prenom:pr, nom:no, contact:[pr,no].filter(Boolean).join(' '), email:em, tel:te}; }
+  var pr=same?val('rlprenom'):val('ownerPrenom'), no=same?val('rlnom'):val('ownerNom'), em=same?val('email'):val('ownerEmail');
+  var te='', cc='';
+  if(same){ te=val('tel'); }
+  else { var sel=document.getElementById('ownerCC'); cc=sel?sel.value:'FR'; var num=val('ownerTel'), dial=OWNER_DIAL[cc]||'';
+    te = num ? (/^\+/.test(num) ? num : ((dial?'+'+dial+' ':'')+num)) : ''; }
+  return {prenom:pr, nom:no, contact:[pr,no].filter(Boolean).join(' '), email:em, tel:te, callingCode:cc}; }
 
 /* === Création de compte (Archie + Drive) + enregistrement progressif — modes /maj et normal === */
 function createAccount(){
