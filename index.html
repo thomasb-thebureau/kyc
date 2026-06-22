@@ -1691,9 +1691,25 @@ function prefillFromURL(){
           if(typeof renderDirChips==='function') renderDirChips();   // resélectionne la bonne puce
           renderStepper();
           if(u) loadClientFiles(u);             // pièces déjà en notre possession (Archie) -> checklist
-        }).catch(function(){ if(u) loadClientFiles(u); });
-    } else if(u) loadClientFiles(u);
+        }).catch(function(){ if(u){ loadClientFiles(u); loadCardFromArchie(u); } });
+    } else if(u){ loadClientFiles(u); loadCardFromArchie(u); }   // pas de SIRET -> identité de la structure depuis Archie
   }catch(e){}
+}
+/* /maj sans SIRET exploitable — pré-remplit l'identité de la structure (adresse, etc.) depuis le compte Archie. */
+function loadCardFromArchie(u){
+  if(!CONFIG.ENDPOINT || !u) return;
+  fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)).then(function(r){return r.json();}).then(function(j){
+    if(!j || !j.ok) return;
+    var setIfEmpty=function(id,v){ var el=document.getElementById(id); if(el && v && !String(el.value||'').trim()) el.value=v; };
+    setIfEmpty('raison', j.raison);
+    var adr=String(j.adresse||'').toUpperCase(), tail=[j.cp,String(j.ville||'').toUpperCase()].filter(Boolean).join(' ');
+    if(tail && (!j.cp || adr.indexOf(String(j.cp))<0)) adr=[adr,tail].filter(Boolean).join(', ');
+    setIfEmpty('adresse', adr);
+    if(j.siret) setIfEmpty('siret', (typeof fmtSiret==='function')?fmtSiret(j.siret):j.siret);
+    if(j.siren) setIfEmpty('siren', (typeof fmtSiren==='function')?fmtSiren(j.siren):j.siren);
+    if(j.tva) setIfEmpty('tva', j.tva);
+    if(!j.siren){ var forme=document.getElementById('forme'); if(forme && !forme.value){ try{ forme.value='autre'; }catch(e){} } }
+  }).catch(function(){});
 }
 /* /maj — charge dans la checklist les pièces déjà détenues (proxy backend -> Archie). */
 function loadClientFiles(u){
