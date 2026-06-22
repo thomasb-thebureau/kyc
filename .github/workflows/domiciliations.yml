@@ -1,0 +1,23 @@
+name: Domiciliations sans contrat
+on:
+  schedule:
+    - cron: '15 5 * * *'   # tous les jours ~05:15 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recherche data.gouv (sociétés au siège dans nos bâtiments)
+        run: python3 tools/domis_search.py
+      - name: Commit domiciliations.json si changé
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add domiciliations.json
+          git diff --cached --quiet && echo "Aucun changement" && exit 0
+          git commit -m "Update domiciliations $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git pull --rebase origin main
+          git push
