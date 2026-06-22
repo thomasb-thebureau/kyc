@@ -1387,10 +1387,9 @@ function renderStepper(){
 function go(idx){
   const ap=activePanels();
   if(idx<0||idx>=ap.length) return;
-  if(idx>state.idx && !validate(ap[state.idx].key)) return;
   const forward = idx>state.idx;
-  if(state.idx===0 && idx>0) createAccount();   // « Votre structure » quittée -> crée le compte Archie + dossier (mode normal ; rien en /maj car déjà créé)
-  if(forward) autoSave_();                       // « Continuer » -> enregistrement automatique des champs (sans ré-envoyer les documents)
+  if(forward) autoSave_();                        // « Continuer » -> push IMMÉDIAT Archie + GSheet (crée le compte si besoin), AVANT la validation
+  if(idx>state.idx && !validate(ap[state.idx].key)) return;
   state.idx=idx;
   withVT(()=>{
     PANELS.forEach(p=>{ const el=document.getElementById(p.panel); if(el) el.classList.toggle('on',p.panel===ap[idx].panel); });
