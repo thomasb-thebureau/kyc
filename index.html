@@ -282,6 +282,16 @@ body.dark .badge.recent{color:#e0a36a}
 .pays-grid span{display:flex;align-items:center;gap:7px;break-inside:avoid;padding:2px 0}
 .flag{width:18px;height:auto;border-radius:1px;border:1px solid rgba(15,15,15,.08);vertical-align:middle;flex-shrink:0}
 body.dark .flag{border-color:rgba(255,255,255,.12)}
+/* Sélecteur d'indicatif (drapeaux images + recherche) */
+.dialpick{position:relative;flex:0 0 auto}
+.dialtrig{display:flex;align-items:center;justify-content:flex-start;min-width:96px;cursor:pointer;padding:0 10px}
+.dialpop{position:absolute;z-index:60;top:calc(100% + 4px);left:0;width:240px;max-height:280px;overflow-y:auto;background:var(--blanc);border:1px solid var(--cf);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.18);padding:8px}
+body.dark .dialpop{background:#23272e;border-color:rgba(255,255,255,.12)}
+.dialsearch{width:100%;margin-bottom:6px;height:34px;padding:0 10px}
+.diallist{display:flex;flex-direction:column}
+.dialopt{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:8px;cursor:pointer;font-size:13.5px}
+.dialopt:hover{background:var(--vp)}
+body.dark .dialopt:hover{background:rgba(255,255,255,.06)}
 #centre.chosen{color:var(--vert);font-weight:600;border-color:var(--vert);background-color:var(--vp)}
 .dirchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--cfield);background:var(--blanc);color:var(--encre);border-radius:50px;padding:4px 11px;font:600 11.5px 'Plus Jakarta Sans';cursor:pointer;margin:4px 4px 0 0;transition:all .15s}
 .dirchip:hover{border-color:var(--vert);color:var(--vert)}
@@ -403,7 +413,7 @@ body.dark .page-sub b{color:var(--ivoire)}
         <div class="fg"><label class="fl" for="email" data-i="f_email">Email <span class="req">*</span></label><input class="finp" id="email" type="email" autocomplete="email"></div>
         <div class="fg"><label class="fl" for="tel" data-i="f_tel">Téléphone <span class="req">*</span></label>
           <div style="display:flex;gap:6px">
-            <select class="fsel" id="telCC" style="max-width:200px;flex:0 0 auto" aria-label="Indicatif pays"></select>
+            <span class="dialhost" data-id="telPick" data-iso="fr"></span>
             <input class="finp" id="tel" type="tel" autocomplete="tel" style="flex:1">
           </div>
         </div>
@@ -425,7 +435,7 @@ body.dark .page-sub b{color:var(--ivoire)}
           <div class="fg"><label class="fl" for="ownerEmail" data-i="of_email">Email</label><input class="finp" id="ownerEmail" type="email" autocomplete="email"></div>
           <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone</label>
             <div style="display:flex;gap:6px">
-              <select class="fsel" id="ownerCC" style="max-width:200px;flex:0 0 auto" aria-label="Indicatif pays"></select>
+              <span class="dialhost" data-id="ownerPick" data-iso="fr"></span>
               <input class="finp" id="ownerTel" type="tel" autocomplete="tel" style="flex:1">
             </div>
           </div>
@@ -892,14 +902,14 @@ function renderBE(){
         <div class="fg"><label class="fl">${t('be_pct')}</label><input class="finp" aria-label="${t('be_pct')}" inputmode="numeric" value="${b.pct||''}" oninput="state.bes[${i}].pct=this.value"></div>
         <div class="fg"><label class="fl">${t('be_tel')}</label>
           <div style="display:flex;gap:6px">
-            <select class="fsel" style="max-width:170px;flex:0 0 auto" aria-label="Indicatif" onchange="state.bes[${i}].cc=this.value">${ccOptionsHTML(b.cc||'FR')}</select>
+            <span class="dialhost" data-id="bePick${i}" data-iso="${(b.cc||'fr')}"></span>
             <input class="finp" aria-label="${t('be_tel')}" type="tel" value="${b.tel||''}" oninput="state.bes[${i}].tel=this.value" style="flex:1">
           </div>
         </div>
         <div class="fg"><label class="fl">${t('be_email')}</label><input class="finp" aria-label="${t('be_email')}" type="email" value="${b.email||''}" oninput="state.bes[${i}].email=this.value"></div>
       </div>
     </div>`).join('');
-  initGooglePlaces(); attachPlaces();
+  initGooglePlaces(); attachPlaces(); initDials();   // pose les sélecteurs d'indicatif des bénéficiaires
 }
 function renderBELabels(){ if(state.bes.length) renderBE(); }
 
@@ -1491,58 +1501,40 @@ async function submitDossier(){
 function toggleOwnerSame(){ var c=document.getElementById('ownerSame'), f=document.getElementById('ownerFields'); if(f) f.style.display=(!c||c.checked)?'none':'block'; }
 /* Valeurs du contact propriétaire : si « identique », on reprend le représentant légal.
    Sinon le téléphone = indicatif (sélecteur) + numéro (sans double préfixe si déjà en +xx). */
-/* Liste pays (FR) triée par nom -> la recherche clavier du <select> (taper « bel » -> Belgique) marche
-   car le NOM est en tête du libellé. Drapeau + indicatif affichés. */
-var COUNTRIES=[
- {iso:'DE',name:'Allemagne',dial:'49',flag:'🇩🇪'},{iso:'SA',name:'Arabie Saoudite',dial:'966',flag:'🇸🇦'},
- {iso:'AU',name:'Australie',dial:'61',flag:'🇦🇺'},{iso:'AT',name:'Autriche',dial:'43',flag:'🇦🇹'},
- {iso:'BE',name:'Belgique',dial:'32',flag:'🇧🇪'},{iso:'BR',name:'Brésil',dial:'55',flag:'🇧🇷'},
- {iso:'CA',name:'Canada',dial:'1',flag:'🇨🇦'},{iso:'CN',name:'Chine',dial:'86',flag:'🇨🇳'},
- {iso:'KR',name:'Corée du Sud',dial:'82',flag:'🇰🇷'},{iso:'CI',name:"Côte d'Ivoire",dial:'225',flag:'🇨🇮'},
- {iso:'DK',name:'Danemark',dial:'45',flag:'🇩🇰'},{iso:'AE',name:'Émirats arabes unis',dial:'971',flag:'🇦🇪'},
- {iso:'ES',name:'Espagne',dial:'34',flag:'🇪🇸'},{iso:'US',name:'États-Unis',dial:'1',flag:'🇺🇸'},
- {iso:'FI',name:'Finlande',dial:'358',flag:'🇫🇮'},{iso:'FR',name:'France',dial:'33',flag:'🇫🇷'},
- {iso:'GR',name:'Grèce',dial:'30',flag:'🇬🇷'},{iso:'HK',name:'Hong Kong',dial:'852',flag:'🇭🇰'},
- {iso:'IN',name:'Inde',dial:'91',flag:'🇮🇳'},{iso:'IE',name:'Irlande',dial:'353',flag:'🇮🇪'},
- {iso:'IL',name:'Israël',dial:'972',flag:'🇮🇱'},{iso:'IT',name:'Italie',dial:'39',flag:'🇮🇹'},
- {iso:'JP',name:'Japon',dial:'81',flag:'🇯🇵'},{iso:'LB',name:'Liban',dial:'961',flag:'🇱🇧'},
- {iso:'LU',name:'Luxembourg',dial:'352',flag:'🇱🇺'},{iso:'MA',name:'Maroc',dial:'212',flag:'🇲🇦'},
- {iso:'MU',name:'Maurice',dial:'230',flag:'🇲🇺'},{iso:'MC',name:'Monaco',dial:'377',flag:'🇲🇨'},
- {iso:'NO',name:'Norvège',dial:'47',flag:'🇳🇴'},{iso:'NL',name:'Pays-Bas',dial:'31',flag:'🇳🇱'},
- {iso:'PL',name:'Pologne',dial:'48',flag:'🇵🇱'},{iso:'PT',name:'Portugal',dial:'351',flag:'🇵🇹'},
- {iso:'QA',name:'Qatar',dial:'974',flag:'🇶🇦'},{iso:'GB',name:'Royaume-Uni',dial:'44',flag:'🇬🇧'},
- {iso:'RU',name:'Russie',dial:'7',flag:'🇷🇺'},{iso:'SN',name:'Sénégal',dial:'221',flag:'🇸🇳'},
- {iso:'SG',name:'Singapour',dial:'65',flag:'🇸🇬'},{iso:'CH',name:'Suisse',dial:'41',flag:'🇨🇭'},
- {iso:'SE',name:'Suède',dial:'46',flag:'🇸🇪'},{iso:'TN',name:'Tunisie',dial:'216',flag:'🇹🇳'},
- {iso:'TR',name:'Turquie',dial:'90',flag:'🇹🇷'}
-];
+/* ===== Indicatifs téléphoniques : sélecteur personnalisé avec VRAIS drapeaux (images flagcdn) + recherche ===== */
+var COUNTRIES=[{iso:'za',name:"Afrique du Sud",dial:'27'},{iso:'al',name:"Albanie",dial:'355'},{iso:'dz',name:"Algérie",dial:'213'},{iso:'de',name:"Allemagne",dial:'49'},{iso:'ad',name:"Andorre",dial:'376'},{iso:'ao',name:"Angola",dial:'244'},{iso:'sa',name:"Arabie Saoudite",dial:'966'},{iso:'ar',name:"Argentine",dial:'54'},{iso:'am',name:"Arménie",dial:'374'},{iso:'au',name:"Australie",dial:'61'},{iso:'at',name:"Autriche",dial:'43'},{iso:'az',name:"Azerbaïdjan",dial:'994'},{iso:'bh',name:"Bahreïn",dial:'973'},{iso:'bd',name:"Bangladesh",dial:'880'},{iso:'be',name:"Belgique",dial:'32'},{iso:'mm',name:"Birmanie",dial:'95'},{iso:'by',name:"Biélorussie",dial:'375'},{iso:'bo',name:"Bolivie",dial:'591'},{iso:'ba',name:"Bosnie-Herzégovine",dial:'387'},{iso:'br',name:"Brésil",dial:'55'},{iso:'bg',name:"Bulgarie",dial:'359'},{iso:'bf',name:"Burkina Faso",dial:'226'},{iso:'bj',name:"Bénin",dial:'229'},{iso:'kh',name:"Cambodge",dial:'855'},{iso:'cm',name:"Cameroun",dial:'237'},{iso:'ca',name:"Canada",dial:'1'},{iso:'cf',name:"Centrafrique",dial:'236'},{iso:'cl',name:"Chili",dial:'56'},{iso:'cn',name:"Chine",dial:'86'},{iso:'cy',name:"Chypre",dial:'357'},{iso:'co',name:"Colombie",dial:'57'},{iso:'cg',name:"Congo",dial:'242'},{iso:'kr',name:"Corée du Sud",dial:'82'},{iso:'cr',name:"Costa Rica",dial:'506'},{iso:'hr',name:"Croatie",dial:'385'},{iso:'cu',name:"Cuba",dial:'53'},{iso:'ci',name:"Côte d'Ivoire",dial:'225'},{iso:'dk',name:"Danemark",dial:'45'},{iso:'dj',name:"Djibouti",dial:'253'},{iso:'es',name:"Espagne",dial:'34'},{iso:'ee',name:"Estonie",dial:'372'},{iso:'fj',name:"Fidji",dial:'679'},{iso:'fi',name:"Finlande",dial:'358'},{iso:'fr',name:"France",dial:'33'},{iso:'ga',name:"Gabon",dial:'241'},{iso:'gh',name:"Ghana",dial:'233'},{iso:'gr',name:"Grèce",dial:'30'},{iso:'gp',name:"Guadeloupe",dial:'590'},{iso:'gt',name:"Guatemala",dial:'502'},{iso:'gn',name:"Guinée",dial:'224'},{iso:'gf',name:"Guyane",dial:'594'},{iso:'ge',name:"Géorgie",dial:'995'},{iso:'ht',name:"Haïti",dial:'509'},{iso:'hk',name:"Hong Kong",dial:'852'},{iso:'hu',name:"Hongrie",dial:'36'},{iso:'in',name:"Inde",dial:'91'},{iso:'id',name:"Indonésie",dial:'62'},{iso:'iq',name:"Irak",dial:'964'},{iso:'ir',name:"Iran",dial:'98'},{iso:'ie',name:"Irlande",dial:'353'},{iso:'is',name:"Islande",dial:'354'},{iso:'il',name:"Israël",dial:'972'},{iso:'it',name:"Italie",dial:'39'},{iso:'jm',name:"Jamaïque",dial:'1'},{iso:'jp',name:"Japon",dial:'81'},{iso:'jo',name:"Jordanie",dial:'962'},{iso:'kz',name:"Kazakhstan",dial:'7'},{iso:'ke',name:"Kenya",dial:'254'},{iso:'kw',name:"Koweït",dial:'965'},{iso:'re',name:"La Réunion",dial:'262'},{iso:'lv',name:"Lettonie",dial:'371'},{iso:'lb',name:"Liban",dial:'961'},{iso:'ly',name:"Libye",dial:'218'},{iso:'li',name:"Liechtenstein",dial:'423'},{iso:'lt',name:"Lituanie",dial:'370'},{iso:'lu',name:"Luxembourg",dial:'352'},{iso:'mk',name:"Macédoine du Nord",dial:'389'},{iso:'mg',name:"Madagascar",dial:'261'},{iso:'my',name:"Malaisie",dial:'60'},{iso:'ml',name:"Mali",dial:'223'},{iso:'mt',name:"Malte",dial:'356'},{iso:'ma',name:"Maroc",dial:'212'},{iso:'mq',name:"Martinique",dial:'596'},{iso:'mu',name:"Maurice",dial:'230'},{iso:'mr',name:"Mauritanie",dial:'222'},{iso:'yt',name:"Mayotte",dial:'262'},{iso:'mx',name:"Mexique",dial:'52'},{iso:'md',name:"Moldavie",dial:'373'},{iso:'mc',name:"Monaco",dial:'377'},{iso:'mn',name:"Mongolie",dial:'976'},{iso:'me',name:"Monténégro",dial:'382'},{iso:'mz',name:"Mozambique",dial:'258'},{iso:'ne',name:"Niger",dial:'227'},{iso:'ng',name:"Nigéria",dial:'234'},{iso:'no',name:"Norvège",dial:'47'},{iso:'nc',name:"Nouvelle-Calédonie",dial:'687'},{iso:'nz',name:"Nouvelle-Zélande",dial:'64'},{iso:'np',name:"Népal",dial:'977'},{iso:'om',name:"Oman",dial:'968'},{iso:'ug',name:"Ouganda",dial:'256'},{iso:'uz',name:"Ouzbékistan",dial:'998'},{iso:'pk',name:"Pakistan",dial:'92'},{iso:'ps',name:"Palestine",dial:'970'},{iso:'pa',name:"Panama",dial:'507'},{iso:'py',name:"Paraguay",dial:'595'},{iso:'nl',name:"Pays-Bas",dial:'31'},{iso:'ph',name:"Philippines",dial:'63'},{iso:'pl',name:"Pologne",dial:'48'},{iso:'pf',name:"Polynésie française",dial:'689'},{iso:'pt',name:"Portugal",dial:'351'},{iso:'pe',name:"Pérou",dial:'51'},{iso:'qa',name:"Qatar",dial:'974'},{iso:'cd',name:"RD Congo",dial:'243'},{iso:'ro',name:"Roumanie",dial:'40'},{iso:'gb',name:"Royaume-Uni",dial:'44'},{iso:'ru',name:"Russie",dial:'7'},{iso:'rw',name:"Rwanda",dial:'250'},{iso:'do',name:"Rép. dominicaine",dial:'1'},{iso:'sm',name:"Saint-Marin",dial:'378'},{iso:'rs',name:"Serbie",dial:'381'},{iso:'sc',name:"Seychelles",dial:'248'},{iso:'sg',name:"Singapour",dial:'65'},{iso:'sk',name:"Slovaquie",dial:'421'},{iso:'si',name:"Slovénie",dial:'386'},{iso:'lk',name:"Sri Lanka",dial:'94'},{iso:'ch',name:"Suisse",dial:'41'},{iso:'se',name:"Suède",dial:'46'},{iso:'sy',name:"Syrie",dial:'963'},{iso:'sn',name:"Sénégal",dial:'221'},{iso:'tz',name:"Tanzanie",dial:'255'},{iso:'tw',name:"Taïwan",dial:'886'},{iso:'td',name:"Tchad",dial:'235'},{iso:'cz',name:"Tchéquie",dial:'420'},{iso:'th',name:"Thaïlande",dial:'66'},{iso:'tg',name:"Togo",dial:'228'},{iso:'tn',name:"Tunisie",dial:'216'},{iso:'tr',name:"Turquie",dial:'90'},{iso:'ua',name:"Ukraine",dial:'380'},{iso:'uy',name:"Uruguay",dial:'598'},{iso:'va',name:"Vatican",dial:'379'},{iso:'ve',name:"Venezuela",dial:'58'},{iso:'vn',name:"Vietnam",dial:'84'},{iso:'ye',name:"Yémen",dial:'967'},{iso:'eg',name:"Égypte",dial:'20'},{iso:'ae',name:"Émirats arabes unis",dial:'971'},{iso:'ec',name:"Équateur",dial:'593'},{iso:'us',name:"États-Unis",dial:'1'},{iso:'et',name:"Éthiopie",dial:'251'}];
 var OWNER_DIAL={}; COUNTRIES.forEach(function(c){ OWNER_DIAL[c.iso]=c.dial; });
-// Options <option> pour un sélecteur d'indicatif (utilisable en innerHTML — ex. bénéficiaires dynamiques).
-function ccOptionsHTML(seliso){ seliso=seliso||'FR'; return COUNTRIES.map(function(c){ return '<option value="'+c.iso+'"'+(c.iso===seliso?' selected':'')+'>'+c.name+'  '+c.flag+'  +'+c.dial+'</option>'; }).join(''); }
-function fillCC(el){ if(el && !el.options.length){ el.innerHTML=ccOptionsHTML('FR'); } }
-// Combine indicatif (ISO) + numéro NATIONAL (06…) -> « +33 612345678 » (0 initial retiré ; pas de double préfixe).
-function combineCC_(cc,num){ num=String(num||'').trim(); if(!num) return ''; if(/^\+/.test(num)) return num; var d=OWNER_DIAL[cc]||''; if(!d) return num; return '+'+d+' '+num.replace(/\D/g,'').replace(/^0+/,''); }
-// Met en forme un n° FR national : "0628799281" -> "06 28 79 92 81".
+function byIso_(iso){ iso=(iso||'').toLowerCase(); for(var i=0;i<COUNTRIES.length;i++) if(COUNTRIES[i].iso===iso) return COUNTRIES[i]; return null; }
+function combineCC_(cc,num){ num=String(num||'').trim(); if(!num) return ''; if(/^\+/.test(num)) return num; var d=OWNER_DIAL[(cc||'').toLowerCase()]||''; if(!d) return num; return '+'+d+' '+num.replace(/\D/g,'').replace(/^0+/,''); }
 function formatFrPhone_(d){ d=String(d||'').replace(/\D/g,''); return d.length>=8?(d.match(/.{1,2}/g)||[]).join(' '):d; }
-// Pré-remplit un champ tél depuis une valeur internationale (+33…) : règle l'indicatif et affiche le NATIONAL (06…).
-function setPhoneField_(ccId,numId,raw){
-  raw=String(raw||'').trim(); var num=document.getElementById(numId), sel=document.getElementById(ccId); if(!num) return;
-  if(/^\+/.test(raw)){
-    var d=raw.replace(/\D/g,''), iso='', dl=0;
-    COUNTRIES.forEach(function(c){ if(d.indexOf(c.dial)===0 && c.dial.length>dl){ iso=c.iso; dl=c.dial.length; } });
-    var nat=d.slice(dl); if(iso==='FR' && nat && nat[0]!=='0') nat='0'+nat;
-    if(sel && iso) sel.value=iso;
-    num.value=(iso==='FR')?formatFrPhone_(nat):nat;
-  } else { num.value=raw; }
-}
-// Téléphone du représentant légal (indicatif telCC + champ tel).
-function rlTel_(){ var s=document.getElementById('telCC'); return combineCC_(s?s.value:'FR', val('tel')); }
-function fillOwnerCC(){ fillCC(document.getElementById('ownerCC')); fillCC(document.getElementById('telCC')); }
+function dialTrigLabel_(iso){ var c=byIso_(iso)||byIso_('fr'); return flagImg(c.iso)+'<span style="margin:0 5px;font-size:13px">+'+c.dial+'</span><span style="opacity:.45;font-size:10px">▼</span>'; }
+function dialHTML(id,iso){ iso=(iso||'fr').toLowerCase(); return '<div class="dialpick" id="'+id+'">'+
+  '<button type="button" class="finp dialtrig" aria-haspopup="listbox" onclick="dialOpen(\''+id+'\')">'+dialTrigLabel_(iso)+'</button>'+
+  '<input type="hidden" class="dialiso" value="'+iso+'">'+
+  '<div class="dialpop" style="display:none"><input class="dialsearch finp" type="text" placeholder="Pays ou indicatif…" oninput="dialFilter(\''+id+'\')" onkeydown="if(event.key===String.fromCharCode(27))dialOpen(\''+id+'\')"><div class="diallist" role="listbox"></div></div></div>'; }
+function dialIso(id){ var w=document.getElementById(id); var h=w&&w.querySelector('.dialiso'); return h?h.value:'fr'; }
+function dialSet(id,iso){ var w=document.getElementById(id); if(!w) return; iso=(iso||'fr').toLowerCase(); var h=w.querySelector('.dialiso'); if(h)h.value=iso; var t=w.querySelector('.dialtrig'); if(t)t.innerHTML=dialTrigLabel_(iso); }
+function dialRender_(id,q){ var w=document.getElementById(id); if(!w) return; var box=w.querySelector('.diallist'); var nq=norm(q||''), dq=(q||'').replace(/\D/g,'');
+  var items=COUNTRIES.filter(function(c){ return !nq || norm(c.name).indexOf(nq)>-1 || (dq && c.dial.indexOf(dq)===0); });
+  box.innerHTML=items.map(function(c){ return '<div class="dialopt" title="'+c.name+'" onmousedown="dialPick(\''+id+'\',\''+c.iso+'\')">'+flagImg(c.iso)+'<span>+'+c.dial+'</span></div>'; }).join(''); }
+function dialOpen(id){ var w=document.getElementById(id); if(!w) return; var pop=w.querySelector('.dialpop'); var wasOpen=pop.style.display!=='none';
+  document.querySelectorAll('.dialpop').forEach(function(p){p.style.display='none';}); if(wasOpen) return;
+  dialRender_(id,''); pop.style.display='block'; var s=w.querySelector('.dialsearch'); if(s){s.value=''; setTimeout(function(){s.focus();},0);} }
+function dialFilter(id){ var w=document.getElementById(id); var s=w&&w.querySelector('.dialsearch'); dialRender_(id, s?s.value:''); }
+function dialPick(id,iso){ dialSet(id,iso); var w=document.getElementById(id); var pop=w&&w.querySelector('.dialpop'); if(pop)pop.style.display='none'; if(typeof onDialPick==='function') onDialPick(id,iso); }
+function onDialPick(id,iso){ var m=/^bePick(\d+)$/.exec(id); if(m && state.bes[+m[1]]) state.bes[+m[1]].cc=iso; }
+function initDials(){ var hs=document.querySelectorAll('.dialhost:not(.ready)'); [].forEach.call(hs,function(h){ h.classList.add('ready'); h.innerHTML=dialHTML(h.getAttribute('data-id'), h.getAttribute('data-iso')||'fr'); }); }
+document.addEventListener('mousedown',function(e){ if(!(e.target.closest&&e.target.closest('.dialpick'))) document.querySelectorAll('.dialpop').forEach(function(p){p.style.display='none';}); });
+function setPhoneField_(pickId,numId,raw){ raw=String(raw||'').trim(); var num=document.getElementById(numId); if(!num) return;
+  if(/^\+/.test(raw)){ var d=raw.replace(/\D/g,''), iso='', dl=0; COUNTRIES.forEach(function(c){ if(d.indexOf(c.dial)===0 && c.dial.length>dl){ iso=c.iso; dl=c.dial.length; } });
+    var nat=d.slice(dl); if(iso==='fr' && nat && nat[0]!=='0') nat='0'+nat; if(iso) dialSet(pickId,iso); num.value=(iso==='fr')?formatFrPhone_(nat):nat; }
+  else { num.value=raw; } }
+function rlTel_(){ return combineCC_(dialIso('telPick'), val('tel')); }
 function ownerVals_(){ var c=document.getElementById('ownerSame'); var same=!c||c.checked;
   var pr=same?val('rlprenom'):val('ownerPrenom'), no=same?val('rlnom'):val('ownerNom'), em=same?val('email'):val('ownerEmail');
-  var te='', cc='FR';
-  if(same){ te=rlTel_(); var ts=document.getElementById('telCC'); cc=ts?ts.value:'FR'; }
-  else { var sel=document.getElementById('ownerCC'); cc=sel?sel.value:'FR'; te=combineCC_(cc, val('ownerTel')); }
+  var te='', cc='fr';
+  if(same){ te=rlTel_(); cc=dialIso('telPick'); }
+  else { cc=dialIso('ownerPick'); te=combineCC_(cc, val('ownerTel')); }
   return {prenom:pr, nom:no, contact:[pr,no].filter(Boolean).join(' '), email:em, tel:te, callingCode:cc}; }
 
 /* === Création de compte (Archie + Drive) + enregistrement progressif — modes /maj et normal === */
@@ -1629,7 +1621,7 @@ document.addEventListener('input', function(e){
 ensureBE();   // garantit au moins 1 bénéficiaire effectif (obligatoire)
 renderEntities(); renderDocs(); renderStepper(); renderBE(); applyLang(); setThemeIcon(); gsapIntro();
 injectSaveButtons();   // bouton « Enregistrer » à côté de « Continuer » sur chaque page
-fillOwnerCC();         // remplit le sélecteur d'indicatifs (pays triés, recherche clavier)
+initDials();           // remplit les sélecteurs d'indicatifs (drapeaux images + recherche)
 prefillFromURL();   // mode /maj : pré-remplissage depuis le lien personnalisé envoyé au client
 
 /* Ajoute un bouton « Enregistrer » (doré) juste à gauche de « Continuer » dans chaque barre de navigation. */
