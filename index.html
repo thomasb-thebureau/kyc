@@ -404,6 +404,17 @@ body.dark .page-sub b{color:var(--ivoire)}
         <div class="fg"><label class="fl" for="tel" data-i="f_tel">Téléphone <span class="req">*</span></label><input class="finp" id="tel" type="tel" autocomplete="tel"></div>
       </div>
       <p class="hint" id="dirInfo" style="display:none;margin-top:2px"></p>
+
+      <h3 class="sec" style="margin-top:14px" data-i="sec_owner">Contact propriétaire</h3>
+      <p class="hint" data-i="owner_hint" style="margin-top:-2px">Titulaire du compte chez The Bureau (peut différer du gérant). Sert à créer et mettre à jour la fiche client dans notre système. Laissez vide si identique au gérant.</p>
+      <div class="row2">
+        <div class="fg"><label class="fl" for="ownerPrenom" data-i="of_prenom">Prénom</label><input class="finp" id="ownerPrenom" autocomplete="given-name"></div>
+        <div class="fg"><label class="fl" for="ownerNom" data-i="of_nom">Nom</label><input class="finp" id="ownerNom" autocomplete="family-name"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label class="fl" for="ownerEmail" data-i="of_email">Email</label><input class="finp" id="ownerEmail" type="email" autocomplete="email"></div>
+        <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone</label><input class="finp" id="ownerTel" type="tel" autocomplete="tel"></div>
+      </div>
       <p class="err-msg" id="err0" role="alert"></p>
     </div>
 
@@ -666,6 +677,9 @@ const I18N = {
   forme_ph:{fr:'Sélectionnez…',en:'Select…'},forme_autre:{fr:'Autre',en:'Other'},
   f_rna:{fr:'N° RNA — Répertoire National des Associations',en:'RNA number — national associations register'},
   sec_rl:{fr:'Représentant légal',en:'Legal representative'},
+  sec_owner:{fr:'Contact propriétaire',en:'Account owner contact'},
+  owner_hint:{fr:'Titulaire du compte chez The Bureau (peut différer du gérant). Sert à créer et mettre à jour la fiche client dans notre système. Laissez vide si identique au gérant.',en:'Account holder at The Bureau (may differ from the legal rep). Used to create and update the client record in our system. Leave blank if same as the legal rep.'},
+  of_prenom:{fr:'Prénom',en:'First name'},of_nom:{fr:'Nom',en:'Last name'},of_email:{fr:'Email',en:'Email'},of_tel:{fr:'Téléphone',en:'Phone'},
   f_prenom:{fr:'Prénom <span class="req">*</span>',en:'First name <span class="req">*</span>'},f_nom:{fr:'Nom <span class="req">*</span>',en:'Last name <span class="req">*</span>'},
   f_email:{fr:'Email <span class="req">*</span>',en:'Email <span class="req">*</span>'},f_tel:{fr:'Téléphone <span class="req">*</span>',en:'Phone <span class="req">*</span>'},
   next:{fr:'Continuer',en:'Continue'},back:{fr:'Retour',en:'Back'},send:{fr:'Envoyer mon dossier',en:'Submit my file'},
@@ -1456,6 +1470,7 @@ function createAccount(){
   state.creating=true;
   const b={action:'create', raison:val('raison'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''),
            email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), tel:val('tel'),
+           ownerContact:[val('ownerPrenom'),val('ownerNom')].filter(Boolean).join(' '), ownerEmail:val('ownerEmail'), ownerTel:val('ownerTel'),
            centre:val('centre'), dom:state.dom?1:0};
   fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
     .then(r=>r.json()).then(j=>{ if(j&&j.uuid) state.archieUuid=j.uuid; state.creating=false; })
@@ -1468,7 +1483,9 @@ function autoSave_(){
     if(!CONFIG.ENDPOINT || !val('raison')) return;
     const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
              siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
-             email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), centre:val('centre'), dom:state.dom?1:0, files:[]};
+             email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
+             ownerContact:[val('ownerPrenom'),val('ownerNom')].filter(Boolean).join(' '), ownerEmail:val('ownerEmail'), ownerTel:val('ownerTel'),
+             centre:val('centre'), dom:state.dom?1:0, files:[]};
     fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
       .then(function(r){return r.json();}).then(function(j){ if(j&&j.uuid) state.archieUuid=j.uuid; toastSave_(state.lang==='en'?'✓ Saved':'✓ Enregistré'); }).catch(function(){});
   }catch(e){}
@@ -1484,7 +1501,9 @@ async function saveProgress(btn){
       for(const id of ids){ const f=state.files[id]; if(f&&f.blob&&!f.fromArchie){ files.push({docId:id, name:fmtFileName(id,f.name), mimeType:f.blob.type||'application/pdf', dataB64:await readB64(f.blob)}); } }
       const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
                siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
-               email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), centre:val('centre'), dom:state.dom?1:0, files:files};
+               email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
+               ownerContact:[val('ownerPrenom'),val('ownerNom')].filter(Boolean).join(' '), ownerEmail:val('ownerEmail'), ownerTel:val('ownerTel'),
+               centre:val('centre'), dom:state.dom?1:0, files:files};
       const r=await fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});
       const j=await r.json(); if(j&&j.uuid) state.archieUuid=j.uuid;
       toastSave_(state.lang==='en'?'✓ Saved':'✓ Enregistré');
@@ -1501,6 +1520,7 @@ function buildPayload(){
       domiciliation:state.dom, entity:state.entity, etranger:state.etranger, loi1901:state.loi1901,
       raison:val('raison'), forme:val('forme'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), rna:val('rna'), adresse:val('adresse'),
       rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:val('tel')},
+      owner:{prenom:val('ownerPrenom'),nom:val('ownerNom'),email:val('ownerEmail'),tel:val('ownerTel')},
       ppe:document.querySelector('input[name=ppe]:checked').value,
       beneficiaires:state.bes.filter(b=>b.nom).map(b=>({prenom:b.prenom,nom:b.nom,pct:b.pct,tel:b.tel,email:b.email,domicile:[b.rue,b.cp,b.ville,b.pays].filter(Boolean).join(', ')})),
       sanction:document.getElementById('sanction').checked,
