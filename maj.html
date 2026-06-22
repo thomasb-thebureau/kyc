@@ -768,7 +768,7 @@ function renderCentres(){
 }
 function centreStyle(){ const s=document.getElementById('centre'); if(s) s.classList.toggle('chosen', !!s.value); }
 function setDom(v){ state.dom=v; document.getElementById('domOui').classList.toggle('on',v); document.getElementById('domNon').classList.toggle('on',!v); renderDocs(); renderStepper(); }
-function toggleEtr(){ state.etranger=document.getElementById('etranger').checked; document.getElementById('etrSw').classList.toggle('on',state.etranger); renderDocs(); }
+function toggleEtr(){ state.etranger=document.getElementById('etranger').checked; document.getElementById('etrSw').classList.toggle('on',state.etranger); if(state.etranger){ var f=document.getElementById('forme'); if(f) f.value='autre'; }   /* siège à l'étranger -> forme juridique « Autre » */ renderDocs(); }
 function toggleLoi(){ state.loi1901=document.getElementById('loi1901').checked; document.getElementById('loiSw').classList.toggle('on',state.loi1901); updateRnaRow(); renderDocs(); }
 
 function currentDocIds(){
@@ -1158,6 +1158,8 @@ function fillFromCompany(r){
   if(r.siren && /^\d{9}$/.test(r.siren)){ const n=parseInt(r.siren,10); const cle=(12+3*(n%97))%97; setv('tva',fmtTva('FR'+String(cle).padStart(2,'0')+r.siren)); }
   // Forme juridique
   const forme=mapForme(r.nature_juridique, comp); if(forme){ const fs=document.getElementById('forme'); if([...fs.options].some(o=>o.value===forme)) fs.value=forme; }
+  // Siège à l'ÉTRANGER (data.gouv) -> coche la case automatiquement + forme « Autre » (via toggleEtr)
+  if(s.libelle_pays_etranger||s.libelle_commune_etranger||s.code_pays_etranger){ var ec=document.getElementById('etranger'); if(ec && !ec.checked){ ec.checked=true; toggleEtr(); } }
   // Représentant légal = 1er dirigeant personne physique
   const dirs=r.dirigeants||[];
   const dpp=dirs.find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
