@@ -401,7 +401,12 @@ body.dark .page-sub b{color:var(--ivoire)}
       </div>
       <div class="row2">
         <div class="fg"><label class="fl" for="email" data-i="f_email">Email <span class="req">*</span></label><input class="finp" id="email" type="email" autocomplete="email"></div>
-        <div class="fg"><label class="fl" for="tel" data-i="f_tel">Téléphone <span class="req">*</span></label><input class="finp" id="tel" type="tel" autocomplete="tel"></div>
+        <div class="fg"><label class="fl" for="tel" data-i="f_tel">Téléphone <span class="req">*</span></label>
+          <div style="display:flex;gap:6px">
+            <select class="fsel" id="telCC" style="max-width:200px;flex:0 0 auto" aria-label="Indicatif pays"></select>
+            <input class="finp" id="tel" type="tel" autocomplete="tel" style="flex:1">
+          </div>
+        </div>
       </div>
       <p class="hint" id="dirInfo" style="display:none;margin-top:2px"></p>
 
@@ -862,7 +867,7 @@ function autoFetchDocs(siren){
 }
 
 /* Bénéficiaires effectifs */
-function beBlank(){ return {prenom:'',nom:'',rue:'',cp:'',ville:'',pays:'',pct:'',tel:'',email:''}; }
+function beBlank(){ return {prenom:'',nom:'',rue:'',cp:'',ville:'',pays:'',pct:'',cc:'FR',tel:'',email:''}; }
 function addBE(){ state.bes.push(beBlank()); renderBE(); }
 function ensureBE(){ if(!state.bes.length) state.bes.push(beBlank()); }   // au moins 1 bénéficiaire effectif (obligatoire)
 function rmBE(i){ if(state.bes.length<=1){ state.bes[0]=beBlank(); } else { state.bes.splice(i,1); } renderBE(); }
@@ -885,7 +890,12 @@ function renderBE(){
       </div>
       <div class="row3">
         <div class="fg"><label class="fl">${t('be_pct')}</label><input class="finp" aria-label="${t('be_pct')}" inputmode="numeric" value="${b.pct||''}" oninput="state.bes[${i}].pct=this.value"></div>
-        <div class="fg"><label class="fl">${t('be_tel')}</label><input class="finp" aria-label="${t('be_tel')}" type="tel" value="${b.tel||''}" oninput="state.bes[${i}].tel=this.value"></div>
+        <div class="fg"><label class="fl">${t('be_tel')}</label>
+          <div style="display:flex;gap:6px">
+            <select class="fsel" style="max-width:170px;flex:0 0 auto" aria-label="Indicatif" onchange="state.bes[${i}].cc=this.value">${ccOptionsHTML(b.cc||'FR')}</select>
+            <input class="finp" aria-label="${t('be_tel')}" type="tel" value="${b.tel||''}" oninput="state.bes[${i}].tel=this.value" style="flex:1">
+          </div>
+        </div>
         <div class="fg"><label class="fl">${t('be_email')}</label><input class="finp" aria-label="${t('be_email')}" type="email" value="${b.email||''}" oninput="state.bes[${i}].email=this.value"></div>
       </div>
     </div>`).join('');
@@ -1507,13 +1517,19 @@ var COUNTRIES=[
  {iso:'TR',name:'Turquie',dial:'90',flag:'🇹🇷'}
 ];
 var OWNER_DIAL={}; COUNTRIES.forEach(function(c){ OWNER_DIAL[c.iso]=c.dial; });
-function fillOwnerCC(){ var sel=document.getElementById('ownerCC'); if(!sel||sel.options.length) return; COUNTRIES.forEach(function(c){ var o=document.createElement('option'); o.value=c.iso; o.textContent=c.name+'  '+c.flag+'  +'+c.dial; if(c.iso==='FR') o.selected=true; sel.appendChild(o); }); }
+// Options <option> pour un sélecteur d'indicatif (utilisable en innerHTML — ex. bénéficiaires dynamiques).
+function ccOptionsHTML(seliso){ seliso=seliso||'FR'; return COUNTRIES.map(function(c){ return '<option value="'+c.iso+'"'+(c.iso===seliso?' selected':'')+'>'+c.name+'  '+c.flag+'  +'+c.dial+'</option>'; }).join(''); }
+function fillCC(el){ if(el && !el.options.length){ el.innerHTML=ccOptionsHTML('FR'); } }
+// Combine indicatif (ISO) + numéro -> « +33 numéro » (sans double préfixe si déjà en +xx).
+function combineCC_(cc,num){ num=String(num||'').trim(); if(!num) return ''; if(/^\+/.test(num)) return num; var d=OWNER_DIAL[cc]||''; return (d?'+'+d+' ':'')+num; }
+// Téléphone du représentant légal (indicatif telCC + champ tel).
+function rlTel_(){ var s=document.getElementById('telCC'); return combineCC_(s?s.value:'FR', val('tel')); }
+function fillOwnerCC(){ fillCC(document.getElementById('ownerCC')); fillCC(document.getElementById('telCC')); }
 function ownerVals_(){ var c=document.getElementById('ownerSame'); var same=!c||c.checked;
   var pr=same?val('rlprenom'):val('ownerPrenom'), no=same?val('rlnom'):val('ownerNom'), em=same?val('email'):val('ownerEmail');
-  var te='', cc='';
-  if(same){ te=val('tel'); }
-  else { var sel=document.getElementById('ownerCC'); cc=sel?sel.value:'FR'; var num=val('ownerTel'), dial=OWNER_DIAL[cc]||'';
-    te = num ? (/^\+/.test(num) ? num : ((dial?'+'+dial+' ':'')+num)) : ''; }
+  var te='', cc='FR';
+  if(same){ te=rlTel_(); var ts=document.getElementById('telCC'); cc=ts?ts.value:'FR'; }
+  else { var sel=document.getElementById('ownerCC'); cc=sel?sel.value:'FR'; te=combineCC_(cc, val('ownerTel')); }
   return {prenom:pr, nom:no, contact:[pr,no].filter(Boolean).join(' '), email:em, tel:te, callingCode:cc}; }
 
 /* === Création de compte (Archie + Drive) + enregistrement progressif — modes /maj et normal === */
@@ -1522,7 +1538,7 @@ function createAccount(){
   state.creating=true;
   const ow=ownerVals_();
   const b={action:'create', raison:val('raison'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''),
-           email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), tel:val('tel'),
+           email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), tel:rlTel_(),
            ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
            centre:val('centre'), dom:state.dom?1:0};
   fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
@@ -1574,10 +1590,10 @@ function buildPayload(){
       rattachement:CENTRES.find(c=>c.id===val('centre'))||null,
       domiciliation:state.dom, entity:state.entity, etranger:state.etranger, loi1901:state.loi1901,
       raison:val('raison'), forme:val('forme'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), rna:val('rna'), adresse:val('adresse'),
-      rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:val('tel')},
+      rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_()},
       owner:(function(o){return {prenom:o.prenom,nom:o.nom,email:o.email,tel:o.tel};})(ownerVals_()),
       ppe:document.querySelector('input[name=ppe]:checked').value,
-      beneficiaires:state.bes.filter(b=>b.nom).map(b=>({prenom:b.prenom,nom:b.nom,pct:b.pct,tel:b.tel,email:b.email,domicile:[b.rue,b.cp,b.ville,b.pays].filter(Boolean).join(', ')})),
+      beneficiaires:state.bes.filter(b=>b.nom).map(b=>({prenom:b.prenom,nom:b.nom,pct:b.pct,tel:combineCC_(b.cc||'FR',b.tel),email:b.email,domicile:[b.rue,b.cp,b.ville,b.pays].filter(Boolean).join(', ')})),
       sanction:document.getElementById('sanction').checked,
       fiche_lcb:state.dom?ficheLCB():null,
       pieces:ids.map(id=>({id,label:DOC[id].fr,fourni:!!state.files[id],fichier:state.files[id]?fmtFileName(id,state.files[id].name):null})),
