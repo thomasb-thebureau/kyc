@@ -970,7 +970,13 @@ const LCB_Q=[
    info:{fr:'Si oui, une fiche distincte devra être complétée avec les mêmes renseignements pour le tiers payeur.',en:'If yes, a separate form with the same details must be completed for the third-party payer.'},
    onYes:[{id:'q12_entite',k:'text',label:{fr:'Par quelle entité ?',en:'By which entity?'}}]},
   {id:'q13', q:{fr:'Votre paiement est-il en provenance d\'un pays étranger ?',en:'Is your payment coming from a foreign country?'},
-   onYes:[{id:'q13_pays',k:'country',label:{fr:'Lequel ?',en:'Which one?'}}]}
+   onYes:[{id:'q13_pays',k:'country',label:{fr:'Lequel ?',en:'Which one?'}}]},
+  {id:'q14', q:{fr:'L\'entrée en relation se fait-elle à distance (sans rencontre physique) ou par l\'intermédiaire d\'un tiers ?',en:'Is the relationship entered remotely (no face-to-face) or through a third party?'},
+   info:{fr:'L\'entrée en relation à distance ou via un intermédiaire constitue un facteur de risque (cf. décisions de la Commission nationale des sanctions).',en:'Remote or intermediary onboarding is a risk factor (CNS decisions).'},
+   onYes:[{id:'q14_qui',k:'text',label:{fr:'Par quel intermédiaire ?',en:'Through which intermediary?'}}]},
+  {id:'q15', q:{fr:'Le règlement de nos services se fera-t-il en espèces ?',en:'Will our services be paid in cash?'},
+   info:{fr:'Le paiement en espèces est un indicateur de risque élevé en matière de LCB-FT.',en:'Cash payment is a high-risk AML/CFT indicator.'}},
+  {id:'q16', kind:'textarea', q:{fr:'Quelle est l\'origine des fonds et du patrimoine de la société ?',en:'What is the origin of the company\'s funds and assets?'}}
 ];
 
 const LCBT={
@@ -1620,6 +1626,7 @@ function buildPayload(){
       beneficiaires:state.bes.filter(b=>b.nom).map(b=>({prenom:b.prenom,nom:b.nom,pct:b.pct,tel:combineCC_(b.cc||'FR',b.tel),email:b.email,domicile:[b.rue,b.cp,b.ville,b.pays].filter(Boolean).join(', ')})),
       sanction:document.getElementById('sanction').checked,
       fiche_lcb:state.dom?ficheLCB():null,
+      lcb:state.dom?state.lcb:null,   /* réponses brutes (par id) -> scoring de risque INTERNE côté serveur */
       pieces:ids.map(id=>({id,label:DOC[id].fr,fourni:!!state.files[id],fichier:state.files[id]?fmtFileName(id,state.files[id].name):null})),
       centre:CONFIG.CENTRE_EMAIL, lang:state.lang
     },
