@@ -426,7 +426,7 @@ body.dark .page-sub b{color:var(--ivoire)}
           <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone</label>
             <div style="display:flex;gap:6px">
               <select class="fsel" id="ownerCC" style="max-width:200px;flex:0 0 auto" aria-label="Indicatif pays"></select>
-              <input class="finp" id="ownerTel" type="tel" autocomplete="tel" style="flex:1" placeholder="07 86 81 73 49">
+              <input class="finp" id="ownerTel" type="tel" autocomplete="tel" style="flex:1">
             </div>
           </div>
         </div>
@@ -1520,8 +1520,21 @@ var OWNER_DIAL={}; COUNTRIES.forEach(function(c){ OWNER_DIAL[c.iso]=c.dial; });
 // Options <option> pour un sélecteur d'indicatif (utilisable en innerHTML — ex. bénéficiaires dynamiques).
 function ccOptionsHTML(seliso){ seliso=seliso||'FR'; return COUNTRIES.map(function(c){ return '<option value="'+c.iso+'"'+(c.iso===seliso?' selected':'')+'>'+c.name+'  '+c.flag+'  +'+c.dial+'</option>'; }).join(''); }
 function fillCC(el){ if(el && !el.options.length){ el.innerHTML=ccOptionsHTML('FR'); } }
-// Combine indicatif (ISO) + numéro -> « +33 numéro » (sans double préfixe si déjà en +xx).
-function combineCC_(cc,num){ num=String(num||'').trim(); if(!num) return ''; if(/^\+/.test(num)) return num; var d=OWNER_DIAL[cc]||''; return (d?'+'+d+' ':'')+num; }
+// Combine indicatif (ISO) + numéro NATIONAL (06…) -> « +33 612345678 » (0 initial retiré ; pas de double préfixe).
+function combineCC_(cc,num){ num=String(num||'').trim(); if(!num) return ''; if(/^\+/.test(num)) return num; var d=OWNER_DIAL[cc]||''; if(!d) return num; return '+'+d+' '+num.replace(/\D/g,'').replace(/^0+/,''); }
+// Met en forme un n° FR national : "0628799281" -> "06 28 79 92 81".
+function formatFrPhone_(d){ d=String(d||'').replace(/\D/g,''); return d.length>=8?(d.match(/.{1,2}/g)||[]).join(' '):d; }
+// Pré-remplit un champ tél depuis une valeur internationale (+33…) : règle l'indicatif et affiche le NATIONAL (06…).
+function setPhoneField_(ccId,numId,raw){
+  raw=String(raw||'').trim(); var num=document.getElementById(numId), sel=document.getElementById(ccId); if(!num) return;
+  if(/^\+/.test(raw)){
+    var d=raw.replace(/\D/g,''), iso='', dl=0;
+    COUNTRIES.forEach(function(c){ if(d.indexOf(c.dial)===0 && c.dial.length>dl){ iso=c.iso; dl=c.dial.length; } });
+    var nat=d.slice(dl); if(iso==='FR' && nat && nat[0]!=='0') nat='0'+nat;
+    if(sel && iso) sel.value=iso;
+    num.value=(iso==='FR')?formatFrPhone_(nat):nat;
+  } else { num.value=raw; }
+}
 // Téléphone du représentant légal (indicatif telCC + champ tel).
 function rlTel_(){ var s=document.getElementById('telCC'); return combineCC_(s?s.value:'FR', val('tel')); }
 function fillOwnerCC(){ fillCC(document.getElementById('ownerCC')); fillCC(document.getElementById('telCC')); }
@@ -1646,10 +1659,10 @@ function prefillFromURL(){
     var setv=function(id,v){ var el=document.getElementById(id); if(el && v) el.value=v; };
     if(centre){ var cs=document.getElementById('centre'); if(cs){ cs.value=centre; centreStyle(); } }
     if(dom==='1'||dom==='oui'||dom==='Oui') setDom(true); else if(dom==='0'||dom==='non'||dom==='Non') setDom(false);
-    setv('raison',raison); setv('email',email); setv('tel',tel);
+    setv('raison',raison); setv('email',email); if(tel) setPhoneField_('telCC','tel',tel);
     if(contact){ var pa=contact.trim().split(/\s+/); if(pa.length>=2){ setv('rlprenom',pa[0]); setv('rlnom',pa.slice(1).join(' ')); } }
     // Contact propriétaire : pré-rempli depuis le tableau ; si ≠ représentant légal -> décoche « identique » et affiche
-    if(owner){ var op=owner.trim().split(/\s+/); setv('ownerPrenom',op[0]||''); setv('ownerNom',op.slice(1).join(' ')); setv('ownerEmail',email); setv('ownerTel',tel);
+    if(owner){ var op=owner.trim().split(/\s+/); setv('ownerPrenom',op[0]||''); setv('ownerNom',op.slice(1).join(' ')); setv('ownerEmail',email); if(tel) setPhoneField_('ownerCC','ownerTel',tel);
       var same=document.getElementById('ownerSame');
       if(same && owner.trim().toUpperCase()!==contact.trim().toUpperCase()){ same.checked=false; toggleOwnerSame(); } }
     majBanner_(raison, contact);
@@ -1662,7 +1675,7 @@ function prefillFromURL(){
           fillFromCompany(res);                 // adresse, forme, TVA, RL, capital (INPI), BODACC, docs…
           var i=document.getElementById('coSearch'); if(i){ i.value='✅ '+(raison||res.nom_raison_sociale||res.nom_complet||''); i.classList.add('cs-ok'); i.setAttribute('aria-expanded','false'); }
           if(raison) setv('raison',raison);     // conserve notre dénomination arbitrée
-          if(email) setv('email',email); if(tel) setv('tel',tel);
+          if(email) setv('email',email); if(tel) setPhoneField_('telCC','tel',tel);
           if(contact){ var pc=contact.trim().split(/\s+/); if(pc.length>=2){ setv('rlprenom',pc[0]); setv('rlnom',pc.slice(1).join(' ')); } }  // RL enregistré prioritaire sur data.gouv
           if(typeof renderDirChips==='function') renderDirChips();   // resélectionne la bonne puce
           renderStepper();
