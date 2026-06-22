@@ -10,7 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Recherche data.gouv (sociétés au siège dans nos bâtiments)
+      - name: Recherche INSEE Sirene (sièges actifs dans nos bâtiments)
+        env:
+          INSEE_API_KEY: ${{ secrets.INSEE_API_KEY }}
         run: python3 tools/domis_search.py
       - name: Commit domiciliations.json si changé
         run: |

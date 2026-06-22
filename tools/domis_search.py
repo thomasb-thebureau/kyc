@@ -1,112 +1,115 @@
 # -*- coding: utf-8 -*-
-# Recherche data.gouv (base SIRENE) : sociétés ACTIVES dont le SIÈGE est dans l'un de nos 4 bâtiments.
-# Produit domiciliations.json (lu ensuite par Apps Script qui exclut les clients Archie + enrichit).
+# Recherche EXHAUSTIVE des sociétés dont le SIÈGE actif est dans l'un de nos 4 bâtiments.
+# Source d'énumération : API Sirene de l'INSEE (autoritaire, filtre structuré par adresse, pagination
+# par curseur — aucun plafond de pertinence). Le représentant légal (absent de Sirene) est complété
+# via data.gouv. Produit domiciliations.json, lu ensuite par Apps Script (exclusion clients + enrichissement).
 #
-# RECALL : les adresses SIRENE arrivent sous des formes variées —
-#   "28 CRS ALBERT 1ER 75008 PARIS 8", "16 COURS ALBERT IER 75008 PARIS", "COURS ALBERT PREMIER"…
-# On canonicalise donc l'adresse (CRS->COURS, IER/PREMIER->1ER, QUATRE->4) avant de filtrer,
-# et on lance PLUSIEURS requêtes par voie pour ne rien rater, puis on fusionne et on filtre par
-# numéro + voie + code postal. (BODACC/INPI n'énumèrent pas par adresse : SIRENE est la source.)
-import urllib.request, urllib.parse, json, time, unicodedata, io, sys
+# SÉCURITÉ : la clé INSEE est lue dans la variable d'environnement INSEE_API_KEY (secret GitHub Actions),
+# JAMAIS écrite dans ce fichier (repo public).
+import urllib.request, urllib.parse, json, time, os, sys, io
 
+INSEE_KEY = os.environ.get('INSEE_API_KEY', '')
+INSEE = "https://api.insee.fr/api-sirene/3.11/siret"
+DG = "https://recherche-entreprises.api.gouv.fr/search"
 UA = {'User-Agent': 'TheBureau-KYC/1.0 (contact: thomasb@thebureau.paris)', 'Accept': 'application/json'}
 
-def norm(s):
-    s = unicodedata.normalize('NFD', str(s or '')).encode('ascii', 'ignore').decode().upper()
-    return ' '.join(s.replace('-', ' ').split())
-
-def canon(s):
-    """Adresse canonique : abréviations et numéraux harmonisés pour un matching robuste."""
-    a = ' ' + norm(s) + ' '
-    a = a.replace(' CRS ', ' COURS ').replace(' COURS ', ' COURS ')
-    a = a.replace(' ALBERT IER ', ' ALBERT 1ER ').replace(' ALBERT PREMIER ', ' ALBERT 1ER ').replace(' ALBERT 1 ER ', ' ALBERT 1ER ')
-    a = a.replace(' QUATRE SEPTEMBRE ', ' 4 SEPTEMBRE ').replace(' DU 4 ', ' 4 ')
-    a = a.replace(' ND ', ' NOTRE DAME ').replace(' N D ', ' NOTRE DAME ')
-    return ' '.join(a.split())
-
-# Cibles : (tab, numéro, voie canonique, code postal)
-TARGETS = [
-    ("TB I — 28 Cours Albert 1er",    "28", "COURS ALBERT 1ER",          "75008"),
-    ("TB II — 16 Cours Albert 1er",   "16", "COURS ALBERT 1ER",          "75008"),
-    ("TB III — 25 Rue du 4 Septembre","25", "4 SEPTEMBRE",               "75002"),
-    ("TB IV — 42 rue ND des Victoires","42", "NOTRE DAME DES VICTOIRES",  "75002"),
+# (tab, code postal, numéro de voie, [libellés de voie à interroger])
+# Albert : « IER » (romain) ET « 1ER » (chiffre) sont des libellés distincts dans Sirene -> on interroge les deux.
+BUILDINGS = [
+    ("TB I — 28 Cours Albert 1er",      "75008", "28", ['ALBERT IER', 'ALBERT 1ER']),
+    ("TB II — 16 Cours Albert 1er",     "75008", "16", ['ALBERT IER', 'ALBERT 1ER']),
+    ("TB III — 25 Rue du 4 Septembre",  "75002", "25", ['4 SEPTEMBRE']),
+    ("TB IV — 42 rue ND des Victoires", "75002", "42", ['NOTRE DAME DES VICTOIRES']),
 ]
-# Requêtes (q, cp) — IMPORTANT : inclure le NUMÉRO + la voie dans ses DEUX graphies ("1ER" et "IER" romain),
-# car l'API plafonne à ~625 résultats récupérables par requête et classe par pertinence : seule la requête
-# « numéro + voie exacte » fait remonter les sociétés de ce numéro. Les résultats sont fusionnés puis filtrés.
-QUERIES = [
-    ("28 cours albert 1er", "75008"), ("28 cours albert ier", "75008"), ("28 cours albert premier", "75008"),
-    ("16 cours albert 1er", "75008"), ("16 cours albert ier", "75008"), ("16 cours albert premier", "75008"),
-    ("cours albert ier", "75008"), ("cours albert 1er", "75008"),
-    ("25 rue du 4 septembre", "75002"), ("25 rue du quatre septembre", "75002"), ("25 quatre septembre", "75002"),
-    ("42 rue notre dame des victoires", "75002"), ("42 notre dame des victoires", "75002"),
-]
+SIEGE_ACTIF = 'etablissementSiege:true AND periode(etatAdministratifEtablissement:A)'
 
-def fetch(q, cp, page):
-    url = "https://recherche-entreprises.api.gouv.fr/search?" + urllib.parse.urlencode(
-        {'q': q, 'code_postal': cp, 'per_page': 25, 'page': page})
-    for att in range(4):
+def insee(query, curseur='*'):
+    url = INSEE + "?" + urllib.parse.urlencode({'q': query, 'nombre': 1000, 'curseur': curseur})
+    req = urllib.request.Request(url, headers={'X-INSEE-Api-Key-Integration': INSEE_KEY, 'Accept': 'application/json'})
+    for att in range(5):
         try:
-            return json.load(urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30))
-        except Exception as ex:
-            sys.stderr.write("retry %s (%s): %s\n" % (att, q, ex)); time.sleep(1.5 + att)
-    return {}
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return {'etablissements': [], 'header': {}}   # 0 résultat
+            sys.stderr.write("insee retry %s (HTTP %s)\n" % (att, e.code)); time.sleep(2 + att)
+        except Exception as e:
+            sys.stderr.write("insee retry %s (%s)\n" % (att, e)); time.sleep(2 + att)
+    return {'etablissements': [], 'header': {}}
 
-def match_target(r):
-    """Renvoie le tab si le siège de r correspond exactement à l'un de nos bâtiments, sinon None."""
-    s = r.get('siege', {}) or {}
-    a = canon(s.get('adresse', ''))
-    toks = a.split()
-    num0 = toks[0] if toks else ''
-    nvoie = norm(s.get('numero_voie', ''))
-    cp = str(s.get('code_postal', '') or '')
-    for tab, num, voie, tcp in TARGETS:
-        if cp != tcp:
-            continue
-        if (num0 == num or nvoie == num) and voie in a:
-            return tab
-    return None
-
-def rl_of(r):
-    for d in (r.get('dirigeants') or []):
-        if d.get('type_dirigeant') == 'personne morale':
-            if d.get('denomination'):
-                return d['denomination']
-            continue
-        nm = ' '.join(x for x in [d.get('prenoms'), d.get('nom')] if x).strip()
-        if nm:
-            return (nm + (' — ' + d['qualite'] if d.get('qualite') else '')).upper()
-    return ''
-
-def dfr(iso):
+def fr_date(iso):
     p = str(iso or '')[:10].split('-')
     return (p[2] + '/' + p[1] + '/' + p[0]) if len(p) == 3 else ''
 
-seen, out, per = set(), [], {}
-for q, cp in QUERIES:
-    j = fetch(q, cp, 1)
-    pages = min(j.get('total_pages', 1) or 1, 25)
-    for p in range(1, pages + 1):
-        jj = j if p == 1 else fetch(q, cp, p)
-        for r in (jj.get('results') or []):
-            si = r.get('siren')
-            if not si or si in seen or r.get('etat_administratif') != 'A':
-                continue
-            tab = match_target(r)
-            if not tab:
-                continue
-            seen.add(si)
-            s = r.get('siege', {}) or {}
-            out.append({'siren': si, 'siret': s.get('siret', ''),
-                        'nom': r.get('nom_complet') or r.get('nom_raison_sociale') or '',
-                        'nature': r.get('nature_juridique') or '', 'date': dfr(r.get('date_creation')),
-                        'adresse': s.get('adresse', ''), 'cp': s.get('code_postal', ''),
-                        'ville': s.get('libelle_commune', ''), 'pays': 'FRANCE',
-                        'rl': rl_of(r), 'tab': tab})
-            per[tab] = per.get(tab, 0) + 1
-        time.sleep(0.2)
+def nom_of(ul):
+    d = ul.get('denominationUniteLegale')
+    if d:
+        return d
+    nom = ' '.join(x for x in [ul.get('prenomUsuelUniteLegale') or ul.get('prenom1UniteLegale'), ul.get('nomUniteLegale')] if x)
+    return nom.strip()
 
-for tab, _n, _v, _c in TARGETS:
-    sys.stderr.write("%s -> %d actives au siège\n" % (tab, per.get(tab, 0)))
+def adresse_of(a):
+    parts = [a.get('numeroVoieEtablissement'), a.get('typeVoieEtablissement'), a.get('libelleVoieEtablissement')]
+    return ' '.join(x for x in parts if x).strip()
+
+def rl_of_siren(siren):
+    """Représentant légal via data.gouv (absent de Sirene). Best-effort : si indisponible -> ''."""
+    try:
+        url = DG + "?" + urllib.parse.urlencode({'q': siren, 'per_page': 1})
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=20) as r:
+            j = json.load(r)
+        res = [x for x in (j.get('results') or []) if x.get('siren') == siren] or (j.get('results') or [])
+        r0 = res[0] if res else None
+        if not r0:
+            return ''
+        for d in (r0.get('dirigeants') or []):
+            if d.get('type_dirigeant') == 'personne morale':
+                if d.get('denomination'):
+                    return d['denomination']
+                continue
+            nm = ' '.join(x for x in [d.get('prenoms'), d.get('nom')] if x).strip()
+            if nm:
+                return (nm + (' — ' + d['qualite'] if d.get('qualite') else '')).upper()
+    except Exception:
+        pass
+    return ''
+
+if not INSEE_KEY:
+    sys.stderr.write("ERREUR : INSEE_API_KEY manquante (secret GitHub Actions).\n"); sys.exit(1)
+
+seen, out, per = set(), [], {}
+for tab, cp, num, libelles in BUILDINGS:
+    for lbl in libelles:
+        q = 'codePostalEtablissement:%s AND numeroVoieEtablissement:%s AND libelleVoieEtablissement:"%s" AND %s' % (cp, num, lbl, SIEGE_ACTIF)
+        cur = '*'
+        while True:
+            j = insee(q, cur)
+            ets = j.get('etablissements') or []
+            for e in ets:
+                si = e.get('siren')
+                if not si or si in seen:
+                    continue
+                seen.add(si)
+                ul = e.get('uniteLegale', {}) or {}
+                a = e.get('adresseEtablissement', {}) or {}
+                out.append({'siren': si, 'siret': e.get('siret', ''), 'nom': nom_of(ul),
+                            'nature': ul.get('categorieJuridiqueUniteLegale') or '',
+                            'date': fr_date(ul.get('dateCreationUniteLegale')),
+                            'adresse': adresse_of(a), 'cp': a.get('codePostalEtablissement', ''),
+                            'ville': a.get('libelleCommuneEtablissement', ''),
+                            'pays': 'FRANCE', 'rl': '', 'tab': tab})
+                per[tab] = per.get(tab, 0) + 1
+            nxt = (j.get('header') or {}).get('curseurSuivant')
+            if not ets or not nxt or nxt == cur:
+                break
+            cur = nxt; time.sleep(0.3)
+
+# Représentant légal via data.gouv (best-effort, n'empêche pas la production de la liste)
+for c in out:
+    c['rl'] = rl_of_siren(c['siren']); time.sleep(0.15)
+
+for tab, cp, num, l in BUILDINGS:
+    sys.stderr.write("%s -> %d sièges actifs\n" % (tab, per.get(tab, 0)))
 io.open("domiciliations.json", "w", encoding="utf-8").write(json.dumps(out, ensure_ascii=False))
-sys.stderr.write("TOTAL actives au siège: %d\n" % len(out))
+sys.stderr.write("TOTAL sièges actifs : %d\n" % len(out))
