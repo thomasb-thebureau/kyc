@@ -420,22 +420,7 @@ body.dark .page-sub b{color:var(--ivoire)}
           <div class="fg"><label class="fl" for="ownerEmail" data-i="of_email">Email</label><input class="finp" id="ownerEmail" type="email" autocomplete="email"></div>
           <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone</label>
             <div style="display:flex;gap:6px">
-              <select class="fsel" id="ownerCC" style="max-width:128px;flex:0 0 auto">
-                <option value="FR" selected>🇫🇷 +33</option>
-                <option value="BE">🇧🇪 +32</option>
-                <option value="CH">🇨🇭 +41</option>
-                <option value="LU">🇱🇺 +352</option>
-                <option value="MC">🇲🇨 +377</option>
-                <option value="GB">🇬🇧 +44</option>
-                <option value="IE">🇮🇪 +353</option>
-                <option value="DE">🇩🇪 +49</option>
-                <option value="ES">🇪🇸 +34</option>
-                <option value="IT">🇮🇹 +39</option>
-                <option value="NL">🇳🇱 +31</option>
-                <option value="PT">🇵🇹 +351</option>
-                <option value="US">🇺🇸 +1</option>
-                <option value="MA">🇲🇦 +212</option>
-              </select>
+              <select class="fsel" id="ownerCC" style="max-width:200px;flex:0 0 auto" aria-label="Indicatif pays"></select>
               <input class="finp" id="ownerTel" type="tel" autocomplete="tel" style="flex:1" placeholder="07 86 81 73 49">
             </div>
           </div>
@@ -1496,7 +1481,33 @@ async function submitDossier(){
 function toggleOwnerSame(){ var c=document.getElementById('ownerSame'), f=document.getElementById('ownerFields'); if(f) f.style.display=(!c||c.checked)?'none':'block'; }
 /* Valeurs du contact propriétaire : si « identique », on reprend le représentant légal.
    Sinon le téléphone = indicatif (sélecteur) + numéro (sans double préfixe si déjà en +xx). */
-var OWNER_DIAL={FR:'33',BE:'32',CH:'41',LU:'352',MC:'377',GB:'44',IE:'353',DE:'49',ES:'34',IT:'39',NL:'31',PT:'351',US:'1',MA:'212'};
+/* Liste pays (FR) triée par nom -> la recherche clavier du <select> (taper « bel » -> Belgique) marche
+   car le NOM est en tête du libellé. Drapeau + indicatif affichés. */
+var COUNTRIES=[
+ {iso:'DE',name:'Allemagne',dial:'49',flag:'🇩🇪'},{iso:'SA',name:'Arabie Saoudite',dial:'966',flag:'🇸🇦'},
+ {iso:'AU',name:'Australie',dial:'61',flag:'🇦🇺'},{iso:'AT',name:'Autriche',dial:'43',flag:'🇦🇹'},
+ {iso:'BE',name:'Belgique',dial:'32',flag:'🇧🇪'},{iso:'BR',name:'Brésil',dial:'55',flag:'🇧🇷'},
+ {iso:'CA',name:'Canada',dial:'1',flag:'🇨🇦'},{iso:'CN',name:'Chine',dial:'86',flag:'🇨🇳'},
+ {iso:'KR',name:'Corée du Sud',dial:'82',flag:'🇰🇷'},{iso:'CI',name:"Côte d'Ivoire",dial:'225',flag:'🇨🇮'},
+ {iso:'DK',name:'Danemark',dial:'45',flag:'🇩🇰'},{iso:'AE',name:'Émirats arabes unis',dial:'971',flag:'🇦🇪'},
+ {iso:'ES',name:'Espagne',dial:'34',flag:'🇪🇸'},{iso:'US',name:'États-Unis',dial:'1',flag:'🇺🇸'},
+ {iso:'FI',name:'Finlande',dial:'358',flag:'🇫🇮'},{iso:'FR',name:'France',dial:'33',flag:'🇫🇷'},
+ {iso:'GR',name:'Grèce',dial:'30',flag:'🇬🇷'},{iso:'HK',name:'Hong Kong',dial:'852',flag:'🇭🇰'},
+ {iso:'IN',name:'Inde',dial:'91',flag:'🇮🇳'},{iso:'IE',name:'Irlande',dial:'353',flag:'🇮🇪'},
+ {iso:'IL',name:'Israël',dial:'972',flag:'🇮🇱'},{iso:'IT',name:'Italie',dial:'39',flag:'🇮🇹'},
+ {iso:'JP',name:'Japon',dial:'81',flag:'🇯🇵'},{iso:'LB',name:'Liban',dial:'961',flag:'🇱🇧'},
+ {iso:'LU',name:'Luxembourg',dial:'352',flag:'🇱🇺'},{iso:'MA',name:'Maroc',dial:'212',flag:'🇲🇦'},
+ {iso:'MU',name:'Maurice',dial:'230',flag:'🇲🇺'},{iso:'MC',name:'Monaco',dial:'377',flag:'🇲🇨'},
+ {iso:'NO',name:'Norvège',dial:'47',flag:'🇳🇴'},{iso:'NL',name:'Pays-Bas',dial:'31',flag:'🇳🇱'},
+ {iso:'PL',name:'Pologne',dial:'48',flag:'🇵🇱'},{iso:'PT',name:'Portugal',dial:'351',flag:'🇵🇹'},
+ {iso:'QA',name:'Qatar',dial:'974',flag:'🇶🇦'},{iso:'GB',name:'Royaume-Uni',dial:'44',flag:'🇬🇧'},
+ {iso:'RU',name:'Russie',dial:'7',flag:'🇷🇺'},{iso:'SN',name:'Sénégal',dial:'221',flag:'🇸🇳'},
+ {iso:'SG',name:'Singapour',dial:'65',flag:'🇸🇬'},{iso:'CH',name:'Suisse',dial:'41',flag:'🇨🇭'},
+ {iso:'SE',name:'Suède',dial:'46',flag:'🇸🇪'},{iso:'TN',name:'Tunisie',dial:'216',flag:'🇹🇳'},
+ {iso:'TR',name:'Turquie',dial:'90',flag:'🇹🇷'}
+];
+var OWNER_DIAL={}; COUNTRIES.forEach(function(c){ OWNER_DIAL[c.iso]=c.dial; });
+function fillOwnerCC(){ var sel=document.getElementById('ownerCC'); if(!sel||sel.options.length) return; COUNTRIES.forEach(function(c){ var o=document.createElement('option'); o.value=c.iso; o.textContent=c.name+'  '+c.flag+'  +'+c.dial; if(c.iso==='FR') o.selected=true; sel.appendChild(o); }); }
 function ownerVals_(){ var c=document.getElementById('ownerSame'); var same=!c||c.checked;
   var pr=same?val('rlprenom'):val('ownerPrenom'), no=same?val('rlnom'):val('ownerNom'), em=same?val('email'):val('ownerEmail');
   var te='', cc='';
@@ -1589,6 +1600,7 @@ document.addEventListener('input', function(e){
 ensureBE();   // garantit au moins 1 bénéficiaire effectif (obligatoire)
 renderEntities(); renderDocs(); renderStepper(); renderBE(); applyLang(); setThemeIcon(); gsapIntro();
 injectSaveButtons();   // bouton « Enregistrer » à côté de « Continuer » sur chaque page
+fillOwnerCC();         // remplit le sélecteur d'indicatifs (pays triés, recherche clavier)
 prefillFromURL();   // mode /maj : pré-remplissage depuis le lien personnalisé envoyé au client
 
 /* Ajoute un bouton « Enregistrer » (doré) juste à gauche de « Continuer » dans chaque barre de navigation. */
