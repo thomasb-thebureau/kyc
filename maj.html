@@ -1404,6 +1404,7 @@ function ficheLCB(){
     else { o.reponse=state.lcb[q.id]||''; o.details=sub((state.lcb[q.id]==='oui'?q.onYes:q.onNo)||[]); }
     out.questionnaire.push(o);
   });
+  out._raw = JSON.parse(JSON.stringify(state.lcb || {}));   // état brut du questionnaire -> permet le rechargement complet au /maj
   return out;
 }
 
@@ -1675,7 +1676,11 @@ function prefillFromURL(){
     if(!siren && !raison && !email) return;   // lien standard -> aucun pré-remplissage
     if(u) state.archieUuid=u;                 // mode /maj : le compte Archie existe déjà
     // Attestation « sanctions & gel des avoirs » : restaurée si elle a déjà été cochée (persistée côté serveur)
-    if(u && CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)).then(function(r){return r.json();}).then(function(j){ if(j&&j.ok&&j.sanction){ var sc=document.getElementById('sanction'); if(sc) sc.checked=true; } }).catch(function(){}); }catch(e){} }
+    if(u && CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)).then(function(r){return r.json();}).then(function(j){
+      if(!j||!j.ok) return;
+      if(j.sanction){ var sc=document.getElementById('sanction'); if(sc) sc.checked=true; }
+      if(j.fiche_lcb && j.fiche_lcb._raw){ Object.assign(state.lcb, j.fiche_lcb._raw); if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB(); }   // recharge le questionnaire LCB-FT déjà rempli
+    }).catch(function(){}); }catch(e){} }
     var setv=function(id,v){ var el=document.getElementById(id); if(el && v) el.value=v; };
     if(centre){ var cs=document.getElementById('centre'); if(cs){ cs.value=centre; centreStyle(); } }
     if(dom==='1'||dom==='oui'||dom==='Oui') setDom(true); else if(dom==='0'||dom==='non'||dom==='Non') setDom(false);
