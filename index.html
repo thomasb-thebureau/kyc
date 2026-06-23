@@ -335,7 +335,7 @@ body.dark .page-sub b{color:var(--ivoire)}
 
 <div class="page-intro">
   <div class="eyebrow" data-i="eyebrow">Constitution du dossier</div>
-  <h1 class="page-h1" data-i="title">Votre <b>dossier d'entrée</b></h1>
+  <h1 class="page-h1" data-i="title">Votre <b>dossier The Bureau</b></h1>
   <div class="page-sub" data-i="subtitle">Renseignez vos informations et joignez les pièces requises. Vos documents sont transmis de façon sécurisée à The Bureau.</div>
 </div>
 
@@ -569,7 +569,7 @@ body.dark .page-sub b{color:var(--ivoire)}
 
   <div class="foot-wrap">
     <img class="foot-chevron" src="chevrons-gold.svg" alt="" aria-hidden="true">
-    <p class="foot" data-i="footer">The Bureau · Dossier d'entrée — données chiffrées en transit</p>
+    <p class="foot" data-i="footer">The Bureau · Votre dossier — données chiffrées en transit</p>
   </div>
 </main>
 
@@ -676,7 +676,7 @@ const state = { lang:'fr', dom:false, entity:'societe', etranger:false, loi1901:
 const I18N = {
   skip:{fr:'Aller au contenu',en:'Skip to content'},
   eyebrow:{fr:'Conformité réglementaire — LCB-FT',en:'Regulatory compliance — AML/CFT'},
-  title:{fr:'Votre <b>dossier d\'entrée</b>',en:'Your <b>onboarding file</b>'},
+  title:{fr:'Votre <b>dossier The Bureau</b>',en:'Your <b>The Bureau file</b>'},
   subtitle:{fr:'La réglementation (LCB-FT) et votre contrat <b>nous obligent à recueillir</b> certaines informations et pièces pour finaliser votre installation.<br><br><b>Une fois votre dossier complet, c\'est réglé</b> — vous n\'aurez plus à y revenir. Vos données sont transmises de façon sécurisée à The Bureau.',en:'Regulations (AML/CFT) and your contract <b>require us to collect</b> certain information and documents to complete your move-in.<br><br><b>Once your file is complete, it\'s done</b> — no need to come back to it. Your data is securely transmitted to The Bureau.'},
   s1:{fr:'Votre structure',en:'Your entity'},s2:{fr:'Déclarations',en:'Declarations'},s3:{fr:'Pièces à fournir',en:'Documents'},s4:{fr:'Récapitulatif',en:'Summary'},
   sec_centre:{fr:'Centre de rattachement',en:'Your centre'},
@@ -742,7 +742,7 @@ const I18N = {
   rgpd_txt:{fr:'J\'autorise The Bureau à traiter ces informations et documents dans le cadre de mes obligations LCB-FT et de mon entrée en relation, conformément au RGPD.',en:'I authorise The Bureau to process this information and these documents for AML/CFT and onboarding purposes, in accordance with the GDPR.'},
   ok_title:{fr:'Dossier <b>transmis</b>',en:'File <b>submitted</b>'},
   ok_txt:{fr:'Merci. Vos documents ont bien été transmis à l\'équipe The Bureau. Vous recevrez une confirmation par email.',en:'Thank you. Your documents have been sent to The Bureau team. You will receive an email confirmation.'},
-  footer:{fr:'The Bureau · Dossier d\'entrée — données chiffrées en transit',en:'The Bureau · Onboarding file — data encrypted in transit'},
+  footer:{fr:'The Bureau · Votre dossier — données chiffrées en transit',en:'The Bureau · Your file — data encrypted in transit'},
   recent_badge:{fr:'< 3 mois',en:'< 3 months'},req_badge:{fr:'Requis',en:'Required'},cond_badge:{fr:'Selon cas',en:'If applicable'},
   upload:{fr:'Joindre',en:'Attach'},replace:{fr:'Remplacer',en:'Replace'},
   auto_badge:{fr:'Import automatique',en:'Auto-imported'},doc_view:{fr:'Voir',en:'View'},doc_remove:{fr:'Retirer',en:'Remove'},auto_loading:{fr:'Récupération auto…',en:'Auto-fetching…'},
@@ -1752,7 +1752,7 @@ function majBanner_(raison, contact){
   var b=document.createElement('div');
   b.style.cssText='background:var(--vp);border:1px solid var(--vert);border-radius:14px;padding:14px 18px;margin:14px auto;max-width:760px;color:var(--vert);font-weight:600;font-size:14px';
   var who=contact?(' '+esc(contact.split(/\s+/)[0])):'';
-  b.innerHTML='👋 Bonjour'+who+', voici le dossier d\'entrée'+(raison?(' de <b>'+esc(raison)+'</b>'):'')+' pré-rempli avec les informations dont nous disposons. Merci de <b>vérifier</b>, <b>compléter</b> ce qui manque, puis de valider.';
+  b.innerHTML='👋 Bonjour'+who+', voici votre dossier The Bureau'+(raison?(' — <b>'+esc(raison)+'</b>'):'')+' pré-rempli avec les informations dont nous disposons. Merci de <b>vérifier</b>, <b>compléter</b> ce qui manque, puis de valider.';
   var tb=document.querySelector('.top-bar');
   if(tb && tb.parentNode) tb.parentNode.insertBefore(b, tb.nextSibling); else document.body.insertBefore(b, document.body.firstChild);
 }
