@@ -892,12 +892,7 @@ function renderBE(){
         <div class="fg"><label class="fl">${t('be_nom')}</label><input class="finp" aria-label="${t('be_nom')}" value="${b.nom||''}" oninput="state.bes[${i}].nom=this.value"></div>
       </div>
       <div class="fg"><label class="fl">${t('be_dom')}</label>
-        <input class="finp" autocomplete="off" aria-label="${t('be_dom')} — ${L(LCBT.addr_rue)}" placeholder="${L(LCBT.addr_rue)}" value="${b.rue||''}" oninput="state.bes[${i}].rue=this.value;banInput(this,'be:${i}')" onblur="banBlur()">
-        <div class="row3" style="margin-top:10px">
-          <input class="finp" aria-label="${t('be_dom')} — ${L(LCBT.addr_cp)}" placeholder="${L(LCBT.addr_cp)}" value="${b.cp||''}" oninput="state.bes[${i}].cp=this.value" inputmode="numeric">
-          <input class="finp" aria-label="${t('be_dom')} — ${L(LCBT.addr_ville)}" placeholder="${L(LCBT.addr_ville)}" value="${b.ville||''}" oninput="state.bes[${i}].ville=this.value">
-          <input class="finp" aria-label="${t('be_dom')} — ${L(LCBT.addr_pays)}" placeholder="${L(LCBT.addr_pays)}" value="${b.pays||''}" oninput="state.bes[${i}].pays=this.value">
-        </div>
+        <input class="finp" autocomplete="off" aria-label="${t('be_dom')}" placeholder="${L(LCBT.addr_full)}" value="${b.rue||''}" oninput="state.bes[${i}].rue=this.value;banInput(this,'be:${i}')" onblur="banBlur()">
         <div class="ahint">🔎 ${L(LCBT.addr_g)}</div>
       </div>
       <div class="row3">
@@ -993,7 +988,7 @@ const LCBT={
   oui:{fr:'Oui',en:'Yes'},non:{fr:'Non',en:'No'},
   paysList:{fr:'Voir la liste des pays (annexe 3.2)',en:'View the country list (annex 3.2)'},
   paysPh:{fr:'Sélectionnez un pays…',en:'Select a country…'},autre:{fr:'Autre',en:'Other'},selectPh:{fr:'Sélectionnez…',en:'Select…'},
-  addr_rue:{fr:'N° et rue',en:'Street address'},addr_cp:{fr:'Code postal',en:'Postal code'},addr_ville:{fr:'Ville',en:'City'},addr_pays:{fr:'Pays',en:'Country'},
+  addr_rue:{fr:'N° et rue',en:'Street address'},addr_cp:{fr:'Code postal',en:'Postal code'},addr_ville:{fr:'Ville',en:'City'},addr_pays:{fr:'Pays',en:'Country'},addr_full:{fr:'Adresse complète (n°, rue, code postal, ville, pays)',en:'Full address (no., street, postcode, city, country)'},
   addr_g:{fr:'Tapez l\'adresse puis choisissez une suggestion — code postal, ville et pays se remplissent seuls.',en:'Type the address and pick a suggestion — postcode, city and country auto-fill.'},
   addr_siege:{fr:'Adresse renseignée automatiquement d\'après le numéro de SIRET. Si elle a changé récemment, la mise à jour se fait automatiquement — sinon, tapez l\'adresse et choisissez une suggestion.',en:'Address auto-filled from the SIRET number. If it has changed recently, the update is automatic — otherwise, type the address and pick a suggestion.'},
   countryPh:{fr:'Tapez un pays (ex. « Fra » → France)…',en:'Type a country (e.g. “Fra” → France)…'},
@@ -1011,6 +1006,11 @@ function fieldHTML(f){
   if(f.k==='country') return comboHTML(f,'world');
   if(f.k==='address'){
     const g=k=>state.lcb[f.id+'_'+k]||'';
+    if(f.id==='c_rldom'){   // domicile du RL : autocomplétion mondiale -> un SEUL champ adresse complète (plus de CP/ville/pays)
+      return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label>
+        <input class="finp" id="${f.id}_rue" autocomplete="off" aria-label="${L(f.label)}" placeholder="${L(LCBT.addr_full)}" value="${g('rue')}" oninput="setLcb('${f.id}_rue',this.value);banInput(this,'${f.id}')" onblur="banBlur()">
+        <div class="ahint">🔎 ${L(LCBT.addr_g)}</div></div>`;
+    }
     return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label>
       <input class="finp" id="${f.id}_rue" autocomplete="off" aria-label="${L(f.label)} — ${L(LCBT.addr_rue)}" placeholder="${L(LCBT.addr_rue)}" value="${g('rue')}" oninput="setLcb('${f.id}_rue',this.value);banInput(this,'${f.id}')" onblur="banBlur()">
       <div class="row3" style="margin-top:10px">
@@ -1324,7 +1324,9 @@ function setAddress(target, a){
   const up=s=>String(s||'').toUpperCase();
   if(target==='siege'){ const inp=document.getElementById('adresse'); if(inp){ inp.value=up([a.rue,[a.cp,a.ville].filter(Boolean).join(' '),(a.pays&&!/^france$/i.test(a.pays))?a.pays:''].filter(Boolean).join(', ')); } return; }
   if(target==='rl'){ const inp=document.getElementById('rladresse'); if(inp){ inp.value=up([a.rue,[a.cp,a.ville].filter(Boolean).join(' '),(a.pays&&!/^france$/i.test(a.pays))?a.pays:''].filter(Boolean).join(', ')); } return; }
-  if(target.indexOf('be:')===0){ const b=state.bes[parseInt(target.slice(3),10)]; if(b){ b.rue=up(a.rue); b.cp=a.cp||''; b.ville=up(a.ville); b.pays=up(a.pays); } renderBE(); }
+  const _full=up([a.rue,[a.cp,a.ville].filter(Boolean).join(' '),(a.pays&&!/^france$/i.test(a.pays))?a.pays:''].filter(Boolean).join(', '));   // adresse complète sur une ligne
+  if(target.indexOf('be:')===0){ const b=state.bes[parseInt(target.slice(3),10)]; if(b){ b.rue=_full; b.cp=''; b.ville=''; b.pays=''; } renderBE(); }   // domicile BE : un seul champ
+  else if(target==='c_rldom'){ state.lcb[target+'_rue']=_full; state.lcb[target+'_cp']=''; state.lcb[target+'_ville']=''; state.lcb[target+'_pays']=''; renderLCB(); }   // domicile RL : un seul champ
   else { state.lcb[target+'_rue']=up(a.rue); state.lcb[target+'_cp']=a.cp||''; state.lcb[target+'_ville']=up(a.ville); state.lcb[target+'_pays']=up(a.pays); renderLCB(); }
 }
 
@@ -1369,11 +1371,11 @@ function banBlur(){ setTimeout(()=>{ const b=document.getElementById('adrAC'); i
 /* Renvoie la liste des ids requis selon les réponses visibles */
 function lcbRequired(){
   const req=[];
-  LCB_IDENT.forEach(f=>{ if(f.k==='address'){ req.push(f.id+'_rue',f.id+'_cp',f.id+'_ville'); } else req.push(f.id); });
+  LCB_IDENT.forEach(f=>{ if(f.k==='address'){ req.push(f.id+'_rue'); if(f.id!=='c_rldom') req.push(f.id+'_cp',f.id+'_ville'); } else req.push(f.id); });   // c_rldom : champ adresse unique
   function walk(fields){ fields.forEach(f=>{
     if(f.opt) return; // champ facultatif
     if(f.k==='yesno'){ req.push(f.id); const a=state.lcb[f.id]; if(a==='oui'&&f.onYes) walk(f.onYes); if(a==='non'&&f.onNo) walk(f.onNo); }
-    else if(f.k==='address'){ req.push(f.id+'_rue',f.id+'_cp',f.id+'_ville'); }
+    else if(f.k==='address'){ req.push(f.id+'_rue'); if(f.id!=='c_rldom') req.push(f.id+'_cp',f.id+'_ville'); }
     else req.push(f.id);
   });}
   LCB_Q.forEach(q=>{
