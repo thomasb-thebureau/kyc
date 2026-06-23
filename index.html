@@ -1587,6 +1587,7 @@ function autoSave_(){
     const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
              siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
              email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
+             rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
              ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
              centre:val('centre'), dom:state.dom?1:0, files:[]};
     fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
@@ -1606,6 +1607,7 @@ async function saveProgress(btn){
       const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
                siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
                email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
+               rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
                ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
                centre:val('centre'), dom:state.dom?1:0, files:files};
       const r=await fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});
