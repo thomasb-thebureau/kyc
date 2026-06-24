@@ -406,8 +406,8 @@ body.dark .page-sub b{color:var(--ivoire)}
         <div class="fg"><label class="fl" for="siret" data-i="f_siret">N° SIRET <span class="req">*</span></label><input class="finp" id="siret" inputmode="numeric" oninput="this.value=fmtSiret(this.value)"></div>
         <div class="fg"><label class="fl" for="tva" data-i="f_tva">N° TVA <span class="req">*</span></label><input class="finp" id="tva" oninput="this.value=fmtTva(this.value)"></div>
       </div>
-      <div class="fg"><label class="fl" for="adresse" data-i="f_adresse">Adresse du siège social</label><input class="finp" id="adresse" autocomplete="off" oninput="banInput(this,'siege')" onblur="banBlur()"><div class="ahint" data-i="f_adresse_hint">Renseignée automatiquement d'après le numéro de SIRET ; si elle a changé récemment, la mise à jour se fait automatiquement.</div></div>
-      <div class="fg" id="rnaRow" style="display:none"><label class="fl" for="rna" data-i="f_rna">N° RNA — Répertoire National des Associations</label><input class="finp" id="rna" placeholder="W123456789"></div>
+      <div class="fg"><label class="fl" for="adresse" data-i="f_adresse">Adresse du siège social <span class="req">*</span></label><input class="finp" id="adresse" autocomplete="off" oninput="banInput(this,'siege')" onblur="banBlur()"><div class="ahint" data-i="f_adresse_hint">Renseignée automatiquement d'après le numéro de SIRET ; si elle a changé récemment, la mise à jour se fait automatiquement.</div></div>
+      <div class="fg" id="rnaRow" style="display:none"><label class="fl" for="rna" data-i="f_rna">N° RNA — Répertoire National des Associations <span class="req">*</span></label><input class="finp" id="rna" placeholder="W123456789"></div>
       <h3 class="sec" style="margin-top:10px" data-i="sec_rl">Représentant légal</h3>
       <div class="row2">
         <div class="fg"><label class="fl" for="rlprenom" data-i="f_prenom">Prénom <span class="req">*</span></label><input class="finp" id="rlprenom" autocomplete="given-name"></div>
@@ -433,12 +433,12 @@ body.dark .page-sub b{color:var(--ivoire)}
       </label>
       <div id="ownerFields" style="display:none">
         <div class="row2">
-          <div class="fg"><label class="fl" for="ownerPrenom" data-i="of_prenom">Prénom</label><input class="finp" id="ownerPrenom" autocomplete="given-name"></div>
-          <div class="fg"><label class="fl" for="ownerNom" data-i="of_nom">Nom</label><input class="finp" id="ownerNom" autocomplete="family-name"></div>
+          <div class="fg"><label class="fl" for="ownerPrenom" data-i="of_prenom">Prénom <span class="req">*</span></label><input class="finp" id="ownerPrenom" autocomplete="given-name"></div>
+          <div class="fg"><label class="fl" for="ownerNom" data-i="of_nom">Nom <span class="req">*</span></label><input class="finp" id="ownerNom" autocomplete="family-name"></div>
         </div>
         <div class="row2">
-          <div class="fg"><label class="fl" for="ownerEmail" data-i="of_email">Email</label><input class="finp" id="ownerEmail" type="email" autocomplete="email"></div>
-          <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone</label>
+          <div class="fg"><label class="fl" for="ownerEmail" data-i="of_email">Email <span class="req">*</span></label><input class="finp" id="ownerEmail" type="email" autocomplete="email"></div>
+          <div class="fg"><label class="fl" for="ownerTel" data-i="of_tel">Téléphone <span class="req">*</span></label>
             <div style="display:flex;gap:6px">
               <span class="dialhost" data-id="ownerPick" data-iso="fr"></span>
               <input class="finp" id="ownerTel" type="tel" autocomplete="tel" style="flex:1">
@@ -891,22 +891,22 @@ function renderBE(){
     <div class="be">
       ${state.bes.length>1?`<button class="rm" onclick="rmBE(${i})" aria-label="Supprimer">&times;</button>`:''}
       <div class="row2">
-        <div class="fg"><label class="fl">${t('be_prenom')}</label><input class="finp" aria-label="${t('be_prenom')}" value="${b.prenom||''}" oninput="state.bes[${i}].prenom=this.value"></div>
-        <div class="fg"><label class="fl">${t('be_nom')}</label><input class="finp" aria-label="${t('be_nom')}" value="${b.nom||''}" oninput="state.bes[${i}].nom=this.value"></div>
+        <div class="fg"><label class="fl">${t('be_prenom')} <span class="req">*</span></label><input class="finp" aria-label="${t('be_prenom')}" value="${b.prenom||''}" oninput="state.bes[${i}].prenom=this.value"></div>
+        <div class="fg"><label class="fl">${t('be_nom')} <span class="req">*</span></label><input class="finp" aria-label="${t('be_nom')}" value="${b.nom||''}" oninput="state.bes[${i}].nom=this.value"></div>
       </div>
-      <div class="fg"><label class="fl">${t('be_dom')}</label>
+      <div class="fg"><label class="fl">${t('be_dom')} <span class="req">*</span></label>
         <input class="finp" autocomplete="off" aria-label="${t('be_dom')}" placeholder="${L(LCBT.addr_full)}" value="${b.rue||''}" oninput="state.bes[${i}].rue=this.value;banInput(this,'be:${i}')" onblur="banBlur()">
         <div class="ahint">🔎 ${L(LCBT.addr_g)}</div>
       </div>
       <div class="row3">
-        <div class="fg"><label class="fl">${t('be_pct')}</label><input class="finp" aria-label="${t('be_pct')}" inputmode="numeric" value="${b.pct||''}" oninput="state.bes[${i}].pct=this.value"></div>
-        <div class="fg"><label class="fl">${t('be_tel')}</label>
+        <div class="fg"><label class="fl">${t('be_pct')} <span class="req">*</span></label><input class="finp" aria-label="${t('be_pct')}" inputmode="numeric" value="${b.pct||''}" oninput="state.bes[${i}].pct=this.value"></div>
+        <div class="fg"><label class="fl">${t('be_tel')} <span class="req">*</span></label>
           <div style="display:flex;gap:6px">
             <span class="dialhost" data-id="bePick${i}" data-iso="${(b.cc||'fr')}"></span>
             <input class="finp" aria-label="${t('be_tel')}" type="tel" value="${b.tel||''}" oninput="state.bes[${i}].tel=this.value" style="flex:1">
           </div>
         </div>
-        <div class="fg"><label class="fl">${t('be_email')}</label><input class="finp" aria-label="${t('be_email')}" type="email" value="${b.email||''}" oninput="state.bes[${i}].email=this.value"></div>
+        <div class="fg"><label class="fl">${t('be_email')} <span class="req">*</span></label><input class="finp" aria-label="${t('be_email')}" type="email" value="${b.email||''}" oninput="state.bes[${i}].email=this.value"></div>
       </div>
     </div>`).join('');
   initGooglePlaces(); attachPlaces(); initDials();   // pose les sélecteurs d'indicatif des bénéficiaires
@@ -942,7 +942,7 @@ const LCB_IDENT=[
 
 /* Les 13 questions de la fiche */
 const LCB_Q=[
-  {id:'q1', q:{fr:'Le Membre est-il originaire ou a-t-il des liens avec un pays figurant sur la liste GAFI des juridictions à haut risque ou sous surveillance renforcée, ou sur la liste UE des pays et territoires non coopératifs à des fins fiscales ?',en:'Is the Member from, or linked to, a country on the FATF list of high-risk or increased-monitoring jurisdictions, or on the EU list of non-cooperative tax jurisdictions?'},
+  {id:'q1', q:{fr:'Le dirigeant est-il originaire ou a-t-il des liens avec un pays figurant sur la liste GAFI des juridictions à haut risque ou sous surveillance renforcée, ou sur la liste UE des pays et territoires non coopératifs à des fins fiscales ?',en:'Is the director from, or linked to, a country on the FATF list of high-risk or increased-monitoring jurisdictions, or on the EU list of non-cooperative tax jurisdictions?'},
    info:{fr:'L\'origine géographique est un facteur de risque pris en compte au titre de la directive (UE) 2015/849 et des art. L.561-5 et L.561-6 du Code monétaire et financier (vigilance constante).',en:'Geographic origin is a risk factor under EU Directive 2015/849 and art. L.561-5 / L.561-6 of the French Monetary & Financial Code.'},
    pays:true,
    onYes:[{id:'q1_pays',k:'pays',label:{fr:'Quel pays ?',en:'Which country?'}},{id:'q1_liens',k:'text',label:{fr:'Quel type de liens ?',en:'What type of links?'}}]},
@@ -1673,7 +1673,7 @@ injectSaveButtons();   // bouton « Enregistrer » à côté de « Continuer » 
 initDials();           // remplit les sélecteurs d'indicatifs (drapeaux images + recherche)
 prefillFromURL();   // mode /maj : pré-remplissage depuis le lien personnalisé envoyé au client
 // Liste GAFI/UE des pays à risque, tenue à jour mensuellement côté backend (repli embarqué si indisponible)
-if(CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?paysRisque').then(function(r){return r.json();}).then(function(j){ if(j&&j.ok&&j.pays&&j.pays.length){ state.paysRisque=j.pays; if(document.getElementById('lcbBody')) renderLCB(); } }).catch(function(){}); }catch(e){} }
+if(CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?paysRisque=1').then(function(r){return r.json();}).then(function(j){ if(j&&j.ok&&j.pays&&j.pays.length){ state.paysRisque=j.pays; if(document.getElementById('lcbBody')) renderLCB(); } }).catch(function(){}); }catch(e){} }
 
 /* Ajoute un bouton « Enregistrer » (doré) juste à gauche de « Continuer » dans chaque barre de navigation. */
 function injectSaveButtons(){
