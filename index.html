@@ -85,6 +85,9 @@ label.fl{display:block;font-size:10px;letter-spacing:.12em;text-transform:upperc
 .req{color:var(--orAA)}
 .finp,.fsel,textarea{width:100%;border:1px solid var(--cfield);border-radius:9px;padding:11px 13px;font:400 14px 'Plus Jakarta Sans';color:var(--encre);background:var(--blanc);outline:none;transition:border-color .2s,box-shadow .2s}
 .finp:focus,textarea:focus,.fsel:focus{border-color:var(--or);box-shadow:0 0 0 3px var(--op)}
+input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%}   /* iOS : sans ça le champ date garde sa largeur native et déborde du conteneur */
+.finp[type=date]{width:100%}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
 @media(max-width:560px){.row2,.row3{grid-template-columns:1fr}}
@@ -1006,10 +1009,15 @@ function fieldHTML(f){
   if(f.k==='country') return comboHTML(f,'world');
   if(f.k==='address'){
     const g=k=>state.lcb[f.id+'_'+k]||'';
-    if(f.id==='c_rldom'){   // domicile du RL : autocomplétion mondiale -> un SEUL champ adresse complète (plus de CP/ville/pays)
+    if(f.id==='c_rldom'){   // domicile RL : champ unique, LIÉ à l'étape 1 (#rladresse)
       return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label>
-        <input class="finp" id="${f.id}_rue" autocomplete="off" aria-label="${L(f.label)}" placeholder="${L(LCBT.addr_full)}" value="${g('rue')}" oninput="setLcb('${f.id}_rue',this.value);banInput(this,'${f.id}')" onblur="banBlur()">
+        <input class="finp" id="c_rldom_rue" autocomplete="off" aria-label="${L(f.label)}" placeholder="${L(LCBT.addr_full)}" value="${g('rue')}" oninput="var r=document.getElementById('rladresse'); if(r) r.value=this.value; setLcb('c_rldom_rue',this.value);banInput(this,'c_rldom')" onblur="banBlur()">
         <div class="ahint">🔎 ${L(LCBT.addr_g)}</div></div>`;
+    }
+    if(f.id==='c_siege'){   // siège : champ unique, LIÉ à l'étape 1 (#adresse)
+      return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label>
+        <input class="finp" id="c_siege_rue" autocomplete="off" aria-label="${L(f.label)}" placeholder="${L(LCBT.addr_full)}" value="${g('rue')}" oninput="var a=document.getElementById('adresse'); if(a) a.value=this.value; setLcb('c_siege_rue',this.value);banInput(this,'c_siege')" onblur="banBlur()">
+        <div class="ahint">🔎 ${L(LCBT.addr_siege)}</div></div>`;
     }
     return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label>
       <input class="finp" id="${f.id}_rue" autocomplete="off" aria-label="${L(f.label)} — ${L(LCBT.addr_rue)}" placeholder="${L(LCBT.addr_rue)}" value="${g('rue')}" oninput="setLcb('${f.id}_rue',this.value);banInput(this,'${f.id}')" onblur="banBlur()">
@@ -1021,7 +1029,7 @@ function fieldHTML(f){
       <div class="ahint">🔎 ${L(f.id==='c_siege'?LCBT.addr_siege:LCBT.addr_g)}</div></div>`;
   }
   if(f.k==='select'){ const opts=f.optionsKeys?f.optionsKeys.map(k=>({v:I18N[k].fr,t:t(k)})):(f.options||[]).map(o=>({v:o,t:o})); return `<div class="fg"><label class="fl">${L(f.label)}${f.opt?'':' <span class="req">*</span>'}</label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.selectPh)}</option>${opts.map(o=>`<option value="${o.v.replace(/"/g,'&quot;')}" ${v===o.v?'selected':''}>${o.t}</option>`).join('')}</select></div>`; }
-  if(f.id==='c_rcs') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${fmtSiret(v)}" oninput="this.value=fmtSiret(this.value);setLcb('c_rcs',this.value)"></div>`;
+  if(f.id==='c_rcs') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${fmtSiret(v)}" oninput="this.value=fmtSiret(this.value); var s=document.getElementById('siret'); if(s) s.value=this.value; setLcb('c_rcs',this.value)"></div>`;
   if(f.id==='c_capital') return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><input class="finp" aria-label="${L(f.label)}" inputmode="numeric" value="${fmtCapital(v)}" oninput="capInput(this)"></div>`;
   if(f.k==='pays') return comboHTML(f,'risk');
   if(f.k==='secteur'){ return `<div class="fg"><label class="fl">${L(f.label)} <span class="req">*</span></label><select class="fsel" aria-label="${L(f.label)}" onchange="setLcb('${f.id}',this.value)"><option value="">${L(LCBT.paysPh)}</option>${SECTEURS.map(s=>`<option ${v===s?'selected':''}>${s}</option>`).join('')}</select></div>`; }
@@ -1052,7 +1060,7 @@ function questionHTML(q,i){
 function lcbId(id){ return LCB_IDENT.find(f=>f.id===id); }
 function renderLCB(){
   const el=document.getElementById('lcbBody'); if(!el) return;
-  if(!state.lcb.c_rcs) state.lcb.c_rcs=fmtSiret(val('siret')); // préremplissage depuis le SIRET (page 1)
+  syncIdentiteLcb_(); // siège / SIRET / domicile RL = repris de l'étape 1 (source unique)
   // préremplissage de la question PPE depuis l'étape Déclarations
   if(state.lcb.q2===undefined){ const ppe=document.querySelector('input[name=ppe]:checked'); if(ppe) state.lcb.q2=ppe.value; }
   el.innerHTML=`
@@ -1075,6 +1083,14 @@ function renderLCB(){
   initGooglePlaces(); attachPlaces();
 }
 function setLcb(id,v){ state.lcb[id]=v; }
+/* Compléments d'identité de la fiche LCB-FT = LIÉS à l'étape 1 (source unique) : siège, SIRET, domicile RL.
+   On recopie les valeurs de l'étape 1 dans la fiche avant de la rendre/sérialiser ; l'édition côté fiche
+   réécrit les champs de l'étape 1 (voir fieldHTML / setAddress) -> tout converge et remonte au gsheet. */
+function syncIdentiteLcb_(){
+  state.lcb.c_siege_rue=val('adresse'); state.lcb.c_siege_cp=''; state.lcb.c_siege_ville=''; state.lcb.c_siege_pays='';
+  state.lcb.c_rcs=fmtSiret(val('siret'));
+  state.lcb.c_rldom_rue=val('rladresse'); state.lcb.c_rldom_cp=''; state.lcb.c_rldom_ville=''; state.lcb.c_rldom_pays='';
+}
 function setLcbRender(id,v){ state.lcb[id]=v; renderLCB(); }
 
 /* ===== Sélecteur de pays avec drapeaux (combobox image) ===== */
@@ -1206,13 +1222,7 @@ function fillFromCompany(r){
   document.getElementById('loiRow').style.display=(state.entity==='asso')?'flex':'none';
   if(state.entity==='asso' && comp.identifiant_association){ state.loi1901=true; const li=document.getElementById('loi1901'); if(li) li.checked=true; document.getElementById('loiSw').classList.add('on'); setv('rna', comp.identifiant_association); }
   updateRnaRow(); updateAsso(); renderDocs();
-  // Pré-remplissage de la fiche LCB-FT (siège, RCS, date de création)
-  const rue=[s.numero_voie,(s.indice_repetition||''),s.type_voie,s.libelle_voie].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
-  if(rue) state.lcb.c_siege_rue=rue;
-  if(s.code_postal) state.lcb.c_siege_cp=s.code_postal;
-  if(s.libelle_commune) state.lcb.c_siege_ville=s.libelle_commune;
-  state.lcb.c_siege_pays='France';
-  if(s.siret) state.lcb.c_rcs=fmtSiret(s.siret);
+  // Fiche LCB-FT : le siège et le SIRET sont mirrorés depuis l'étape 1 (#adresse / #siret) au rendu (syncIdentiteLcb_).
   if(r.date_creation) state.lcb.c_datecrea=r.date_creation;
   inpiAutofill(r.siren); // capital social via le backend (RNE/INPI), si déployé
   checkBodacc(r.siren);  // Q7/Q8 (dirigeant/statuts) via BODACC
@@ -1326,7 +1336,8 @@ function setAddress(target, a){
   if(target==='rl'){ const inp=document.getElementById('rladresse'); if(inp){ inp.value=up([a.rue,[a.cp,a.ville].filter(Boolean).join(' '),(a.pays&&!/^france$/i.test(a.pays))?a.pays:''].filter(Boolean).join(', ')); } return; }
   const _full=up([a.rue,[a.cp,a.ville].filter(Boolean).join(' '),(a.pays&&!/^france$/i.test(a.pays))?a.pays:''].filter(Boolean).join(', '));   // adresse complète sur une ligne
   if(target.indexOf('be:')===0){ const b=state.bes[parseInt(target.slice(3),10)]; if(b){ b.rue=_full; b.cp=''; b.ville=''; b.pays=''; } renderBE(); }   // domicile BE : un seul champ
-  else if(target==='c_rldom'){ state.lcb[target+'_rue']=_full; state.lcb[target+'_cp']=''; state.lcb[target+'_ville']=''; state.lcb[target+'_pays']=''; renderLCB(); }   // domicile RL : un seul champ
+  else if(target==='c_rldom'){ var r=document.getElementById('rladresse'); if(r) r.value=_full; state.lcb.c_rldom_rue=_full; state.lcb.c_rldom_cp=''; state.lcb.c_rldom_ville=''; state.lcb.c_rldom_pays=''; renderLCB(); }   // domicile RL -> réécrit l'étape 1
+  else if(target==='c_siege'){ var ad=document.getElementById('adresse'); if(ad) ad.value=_full; state.lcb.c_siege_rue=_full; state.lcb.c_siege_cp=''; state.lcb.c_siege_ville=''; state.lcb.c_siege_pays=''; renderLCB(); }   // siège -> réécrit l'étape 1
   else { state.lcb[target+'_rue']=up(a.rue); state.lcb[target+'_cp']=a.cp||''; state.lcb[target+'_ville']=up(a.ville); state.lcb[target+'_pays']=up(a.pays); renderLCB(); }
 }
 
@@ -1371,11 +1382,11 @@ function banBlur(){ setTimeout(()=>{ const b=document.getElementById('adrAC'); i
 /* Renvoie la liste des ids requis selon les réponses visibles */
 function lcbRequired(){
   const req=[];
-  LCB_IDENT.forEach(f=>{ if(f.k==='address'){ req.push(f.id+'_rue'); if(f.id!=='c_rldom') req.push(f.id+'_cp',f.id+'_ville'); } else req.push(f.id); });   // c_rldom : champ adresse unique
+  LCB_IDENT.forEach(f=>{ if(f.k==='address'){ req.push(f.id+'_rue'); } else req.push(f.id); });   // adresses = champ unique (siège + domicile RL liés à l'étape 1)
   function walk(fields){ fields.forEach(f=>{
     if(f.opt) return; // champ facultatif
     if(f.k==='yesno'){ req.push(f.id); const a=state.lcb[f.id]; if(a==='oui'&&f.onYes) walk(f.onYes); if(a==='non'&&f.onNo) walk(f.onNo); }
-    else if(f.k==='address'){ req.push(f.id+'_rue'); if(f.id!=='c_rldom') req.push(f.id+'_cp',f.id+'_ville'); }
+    else if(f.k==='address'){ req.push(f.id+'_rue'); }
     else req.push(f.id);
   });}
   LCB_Q.forEach(q=>{
@@ -1392,6 +1403,7 @@ function validateLCB(){
 }
 /* Fiche exportée (libellé FR + réponse) pour le centre */
 function ficheLCB(){
+  syncIdentiteLcb_();   // garantit siège/SIRET/domicile RL = étape 1 au moment de la sérialisation
   const out={identite:{},questionnaire:[]};
   LCB_IDENT.forEach(f=>{
     if(f.k==='address'){ const a=['_rue','_cp','_ville','_pays'].map(s=>state.lcb[f.id+s]).filter(Boolean).join(', '); out.identite[f.id]={label:f.label.fr,valeur:a}; }
