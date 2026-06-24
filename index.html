@@ -917,9 +917,12 @@ function renderBELabels(){ if(state.bes.length) renderBE(); }
    FICHE LCB-FT (Annexe 3) — domiciliation uniquement
 ============================================================ */
 /* Annexe 3.2 — liste des pays à vigilance renforcée */
+// Repli embarqué + table des drapeaux. Liste GAFI (noire+grise) + UE (non coopératifs) — base oct. 2025/févr. 2026.
+// La liste réellement affichée est rechargée dynamiquement depuis le backend (?paysRisque), mis à jour mensuellement.
 const PAYS_RISQUE=[
-  {n:'Afghanistan',c:'AF'},{n:'Afrique du Sud',c:'ZA'},{n:'Algérie',c:'DZ'},{n:'Angola',c:'AO'},{n:'Biélorussie',c:'BY'},{n:'Bolivie',c:'BO'},{n:'Bulgarie',c:'BG'},{n:'Burkina Faso',c:'BF'},{n:'Burundi',c:'BI'},{n:'Cameroun',c:'CM'},{n:'Corée du Nord',c:'KP'},{n:'Côte d\'Ivoire',c:'CI'},{n:'Guatemala',c:'GT'},{n:'Guinée',c:'GN'},{n:'Guinée-Bissau',c:'GW'},{n:'Haïti',c:'HT'},{n:'Îles Vierges (Royaume-Uni)',c:'VG'},{n:'Iran',c:'IR'},{n:'Iraq',c:'IQ'},{n:'Kenya',c:'KE'},{n:'Laos',c:'LA'},{n:'Liban',c:'LB'},{n:'Libye',c:'LY'},{n:'Mali',c:'ML'},{n:'Moldavie',c:'MD'},{n:'Monaco',c:'MC'},{n:'Mozambique',c:'MZ'},{n:'Myanmar',c:'MM'},{n:'Namibie',c:'NA'},{n:'Népal',c:'NP'},{n:'Nicaragua',c:'NI'},{n:'Niger',c:'NE'},{n:'Nigeria',c:'NG'},{n:'République Centrafricaine',c:'CF'},{n:'République démocratique du Congo',c:'CD'},{n:'Russie',c:'RU'},{n:'Somalie',c:'SO'},{n:'Soudan',c:'SD'},{n:'Soudan du Sud',c:'SS'},{n:'Syrie',c:'SY'},{n:'Tanzanie',c:'TZ'},{n:'Trinité-et-Tobago',c:'TT'},{n:'Tunisie',c:'TN'},{n:'Turquie',c:'TR'},{n:'Vanuatu',c:'VU'},{n:'Venezuela',c:'VE'},{n:'Vietnam',c:'VN'},{n:'Yémen',c:'YE'},{n:'Zimbabwe',c:'ZW'}
+  {n:'Algérie',c:'DZ'},{n:'Anguilla',c:'AI'},{n:'Angola',c:'AO'},{n:'Bolivie',c:'BO'},{n:'Bulgarie',c:'BG'},{n:'Cameroun',c:'CM'},{n:'Corée du Nord',c:'KP'},{n:'Côte d\'Ivoire',c:'CI'},{n:'Guam',c:'GU'},{n:'Haïti',c:'HT'},{n:'Îles Turques-et-Caïques',c:'TC'},{n:'Îles Vierges américaines',c:'VI'},{n:'Îles Vierges britanniques',c:'VG'},{n:'Iran',c:'IR'},{n:'Kenya',c:'KE'},{n:'Laos',c:'LA'},{n:'Liban',c:'LB'},{n:'Monaco',c:'MC'},{n:'Myanmar',c:'MM'},{n:'Namibie',c:'NA'},{n:'Népal',c:'NP'},{n:'Palaos',c:'PW'},{n:'Panama',c:'PA'},{n:'République démocratique du Congo',c:'CD'},{n:'Russie',c:'RU'},{n:'Samoa américaines',c:'AS'},{n:'Soudan du Sud',c:'SS'},{n:'Syrie',c:'SY'},{n:'Vanuatu',c:'VU'},{n:'Venezuela',c:'VE'},{n:'Vietnam',c:'VN'},{n:'Yémen',c:'YE'}
 ];
+const PAYS_CODE={}; PAYS_RISQUE.forEach(p=>{PAYS_CODE[p.n]=p.c;});   // nom -> code ISO (drapeau)
 const SECTEURS=['Location de voitures','BTP','Sociétés de surveillance','Formation','Informatique','Travaux à domicile','Cartes prépayées','Téléphonie','Annuaires professionnels','Gardiennage'];
 
 /* Drapeau en IMAGE (les emojis drapeaux ne s'affichent pas sous Windows) */
@@ -939,7 +942,7 @@ const LCB_IDENT=[
 
 /* Les 13 questions de la fiche */
 const LCB_Q=[
-  {id:'q1', q:{fr:'Le Membre est-il originaire ou a-t-il des liens avec l\'un des pays figurant à l\'annexe 3.2 ?',en:'Is the Member from, or linked to, one of the countries listed in annex 3.2?'},
+  {id:'q1', q:{fr:'Le Membre est-il originaire ou a-t-il des liens avec un pays figurant sur la liste GAFI des juridictions à haut risque ou sous surveillance renforcée, ou sur la liste UE des pays et territoires non coopératifs à des fins fiscales ?',en:'Is the Member from, or linked to, a country on the FATF list of high-risk or increased-monitoring jurisdictions, or on the EU list of non-cooperative tax jurisdictions?'},
    info:{fr:'L\'origine géographique est un facteur de risque pris en compte au titre de la directive (UE) 2015/849 et des art. L.561-5 et L.561-6 du Code monétaire et financier (vigilance constante).',en:'Geographic origin is a risk factor under EU Directive 2015/849 and art. L.561-5 / L.561-6 of the French Monetary & Financial Code.'},
    pays:true,
    onYes:[{id:'q1_pays',k:'pays',label:{fr:'Quel pays ?',en:'Which country?'}},{id:'q1_liens',k:'text',label:{fr:'Quel type de liens ?',en:'What type of links?'}}]},
@@ -989,7 +992,7 @@ const LCBT={
   why:{fr:'Pourquoi cette question ?',en:'Why this question?'},
   rl_recap:{fr:'Représentant légal (saisi à l\'étape 1)',en:'Legal representative (from step 1)'},
   oui:{fr:'Oui',en:'Yes'},non:{fr:'Non',en:'No'},
-  paysList:{fr:'Voir la liste des pays (annexe 3.2)',en:'View the country list (annex 3.2)'},
+  paysList:{fr:'Voir la liste des pays (GAFI + UE)',en:'View the country list (FATF + EU)'},
   paysPh:{fr:'Sélectionnez un pays…',en:'Select a country…'},autre:{fr:'Autre',en:'Other'},selectPh:{fr:'Sélectionnez…',en:'Select…'},
   addr_rue:{fr:'N° et rue',en:'Street address'},addr_cp:{fr:'Code postal',en:'Postal code'},addr_ville:{fr:'Ville',en:'City'},addr_pays:{fr:'Pays',en:'Country'},addr_full:{fr:'Adresse complète (n°, rue, code postal, ville, pays)',en:'Full address (no., street, postcode, city, country)'},
   addr_g:{fr:'Tapez l\'adresse puis choisissez une suggestion — code postal, ville et pays se remplissent seuls.',en:'Type the address and pick a suggestion — postcode, city and country auto-fill.'},
@@ -1054,7 +1057,8 @@ function questionHTML(q,i){
       <div class="fg"><label class="fl">${L(LCBT.ca3)} <span class="req">*</span></label><input class="finp" aria-label="${L(LCBT.ca3)}" value="${state.lcb.q10_n3||''}" oninput="setLcb('q10_n3',this.value)"></div></div></div>`;
   else body=yesnoHTML(q);
   const info=q.info?`<span class="qinfo" tabindex="0" role="note" aria-label="${L(LCBT.why)}">?<span class="qtip"><b>${L(LCBT.why)}</b>${L(q.info)}</span></span>`:'';
-  const paysList=q.pays?`<details class="info-d" style="margin-top:11px"><summary>${L(LCBT.paysList)}</summary><div class="dbody"><div class="pays-grid">${PAYS_RISQUE.map(p=>`<span>${flagImg(p.c)} ${p.n}</span>`).join('')}</div></div></details>`:'';
+  const _paysAff=(state.paysRisque&&state.paysRisque.length)?state.paysRisque:PAYS_RISQUE.map(p=>p.n);   // liste à jour (backend) sinon repli embarqué
+  const paysList=q.pays?`<details class="info-d" style="margin-top:11px"><summary>${L(LCBT.paysList)}</summary><div class="dbody"><div class="pays-grid">${_paysAff.map(n=>`<span>${PAYS_CODE[n]?flagImg(PAYS_CODE[n])+' ':''}${esc(n)}</span>`).join('')}</div></div></details>`:'';
   return `<div class="qbloc"><div class="qhead"><span class="qnum">${i}</span><span class="qtxt">${L(q.q)}</span>${info}</div>${paysList}${body}</div>`;
 }
 function lcbId(id){ return LCB_IDENT.find(f=>f.id===id); }
@@ -1668,6 +1672,8 @@ renderEntities(); renderDocs(); renderStepper(); renderBE(); applyLang(); setThe
 injectSaveButtons();   // bouton « Enregistrer » à côté de « Continuer » sur chaque page
 initDials();           // remplit les sélecteurs d'indicatifs (drapeaux images + recherche)
 prefillFromURL();   // mode /maj : pré-remplissage depuis le lien personnalisé envoyé au client
+// Liste GAFI/UE des pays à risque, tenue à jour mensuellement côté backend (repli embarqué si indisponible)
+if(CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?paysRisque').then(function(r){return r.json();}).then(function(j){ if(j&&j.ok&&j.pays&&j.pays.length){ state.paysRisque=j.pays; if(document.getElementById('lcbBody')) renderLCB(); } }).catch(function(){}); }catch(e){} }
 
 /* Ajoute un bouton « Enregistrer » (doré) juste à gauche de « Continuer » dans chaque barre de navigation. */
 function injectSaveButtons(){
