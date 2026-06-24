@@ -936,6 +936,7 @@ const LCB_IDENT=[
   {id:'c_capital',k:'text',label:{fr:'Capital social (€)',en:'Share capital (€)'}},
   {id:'c_rcs',   k:'text', label:{fr:'N° d\'immatriculation au RCS (SIRET)',en:'Trade & companies register no. (SIRET)'}},
   {id:'c_datecrea',k:'date',label:{fr:'Date de création de la société',en:'Date of incorporation'}},
+  {id:'c_nationalite',k:'country',label:{fr:'Nationalité du dirigeant',en:'Director\'s nationality'}},
   {id:'c_rldom', k:'address', label:{fr:'Domicile du représentant légal',en:'Home address of legal representative'}},
   {id:'c_compta',k:'textarea',label:{fr:'Lieu de conservation des documents comptables',en:'Where accounting records are kept'}}
 ];
@@ -1078,6 +1079,7 @@ function renderLCB(){
       <div class="row2">${fieldHTML(lcbId('c_capital'))}${fieldHTML(lcbId('c_rcs'))}</div>
       ${fieldHTML(lcbId('c_datecrea'))}
       <div class="rl-recap">${L(LCBT.rl_recap)} : <b>${esc((val('rlprenom')+' '+val('rlnom')).trim()||'—')}</b> · ${esc(val('email')||'—')} · ${esc(val('tel')||'—')}${val('rladresse')?(' · '+esc(val('rladresse'))):''}</div>
+      ${fieldHTML(lcbId('c_nationalite'))}
       ${fieldHTML(lcbId('c_rldom'))}
       ${fieldHTML(lcbId('c_compta'))}
     </div>
