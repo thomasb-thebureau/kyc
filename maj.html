@@ -423,6 +423,12 @@ body.dark .page-sub b{color:var(--ivoire)}
         </div>
       </div>
       <div class="fg" style="margin-top:2px"><label class="fl" for="rladresse">Adresse du représentant légal <span class="req">*</span></label><input class="finp" id="rladresse" autocomplete="off" oninput="banInput(this,'rl')" onblur="banBlur()"><div class="ahint">Adresse de domicile du représentant légal — autocomplétion mondiale.</div></div>
+      <div class="fg cb-wrap" style="margin-top:2px"><label class="fl" id="natP1_lbl" for="natP1_cb" data-i="f_nat">Nationalité du dirigeant <span class="req">*</span></label>
+        <div class="cb-field"><span class="cb-flag" id="natP1_flag" style="display:none"></span>
+          <input class="finp" id="natP1_cb" autocomplete="off" placeholder="Tapez un pays (ex. « Fra » → France)…" role="combobox" aria-expanded="false" aria-controls="natP1_list" aria-labelledby="natP1_lbl"
+            oninput="natP1Filter()" onfocus="natP1Filter()" onblur="natP1Blur()" onkeydown="natP1Key(event)"></div>
+        <div class="cb-list" id="natP1_list" role="listbox" aria-label="Nationalité du dirigeant" style="display:none"></div>
+        <div class="ahint">Pré-remplie d'après les registres ; modifiable. Exigée par les organismes légaux pour tous les dossiers.</div></div>
       <p class="hint" id="dirInfo" style="display:none;margin-top:2px"></p>
 
       <h3 class="sec" style="margin-top:14px" data-i="sec_owner">Contact propriétaire</h3>
@@ -1160,6 +1166,24 @@ function cbKey(e,fieldId,scope){
 }
 function cbPick(fieldId,name){ state.lcb[fieldId]=name; renderLCB(); }
 
+/* Nationalité du dirigeant — combo dédié PAGE 1 (id natP1), clé partagée state.lcb.c_nationalite -> liée à la fiche LCB-FT.
+   Capté pour TOUS (domicilié ou non) : remonte au récap + gsheet via le champ nationalite du payload. */
+function natP1Flag_(){ var f=document.getElementById('natP1_flag'); if(!f) return; var v=state.lcb.c_nationalite||''; var it=CB_LISTS.nat().find(function(p){return p.name===v;}); if(it&&it.iso){ f.innerHTML=flagImg(it.iso); f.style.display=''; } else { f.innerHTML=''; f.style.display='none'; } }
+function natP1Render_(){ var inp=document.getElementById('natP1_cb'); if(inp && document.activeElement!==inp) inp.value=state.lcb.c_nationalite||''; natP1Flag_(); }
+function natP1Filter(){ var inp=document.getElementById('natP1_cb'), box=document.getElementById('natP1_list'); if(!inp||!box) return;
+  state.lcb.c_nationalite=inp.value; var q=norm(inp.value.trim());
+  var items=CB_LISTS.nat().filter(function(p){return norm(p.name).includes(q)||norm(p.pays||'').includes(q);}).slice(0,8);
+  box.dataset.active='-1';
+  box.innerHTML=items.map(function(p,idx){return '<div class="cb-opt" role="option" id="natP1_opt'+idx+'" onmousedown="natP1Pick(this.dataset.n)" data-n="'+p.name.replace(/"/g,'&quot;')+'">'+flagImg(p.iso)+'<span>'+p.name+((p.pays&&p.pays!==p.name)?' <small style="opacity:.6">· '+p.pays+'</small>':'')+'</span></div>';}).join('');
+  box.style.display=items.length?'block':'none'; inp.setAttribute('aria-expanded',items.length?'true':'false'); }
+function natP1Pick(name){ state.lcb.c_nationalite=name; var inp=document.getElementById('natP1_cb'); if(inp) inp.value=name; var box=document.getElementById('natP1_list'); if(box) box.style.display='none'; natP1Flag_(); if(state.dom&&document.getElementById('lcbBody')) renderLCB(); }
+function natP1Blur(){ setTimeout(function(){ var box=document.getElementById('natP1_list'); if(box) box.style.display='none';
+  var inp=document.getElementById('natP1_cb'); if(inp){ var v=(inp.value||'').trim(); state.lcb.c_nationalite = NAT_MAP[v] ? NAT_MAP[v] : normNat_(v); inp.value=state.lcb.c_nationalite; natP1Flag_(); if(state.dom&&document.getElementById('lcbBody')) renderLCB(); } },150); }
+function natP1Key(e){ var box=document.getElementById('natP1_list'); if(!box) return; var opts=[].slice.call(box.querySelectorAll('.cb-opt')); var act=parseInt(box.dataset.active||'-1',10);
+  if(e.key==='ArrowDown'){ e.preventDefault(); act=Math.min(act+1,opts.length-1); } else if(e.key==='ArrowUp'){ e.preventDefault(); act=Math.max(act-1,0); }
+  else if(e.key==='Enter'){ if(act>=0&&opts[act]){ e.preventDefault(); natP1Pick(opts[act].dataset.n); } return; } else if(e.key==='Escape'){ box.style.display='none'; return; } else return;
+  box.dataset.active=String(act); opts.forEach(function(o,i){ o.classList.toggle('active',i===act); }); }
+
 /* Séparateurs SIREN (XXX XXX XXX) / SIRET (XXX XXX XXX XXX XX) */
 function fmtSiren(v){ const d=(v||'').replace(/\D/g,'').slice(0,9); return d.replace(/(\d{3})(\d{0,3})(\d{0,3})/, (m,a,b,c)=>[a,b,c].filter(x=>x!=='').join(' ')); }
 function fmtSiret(v){ const d=(v||'').replace(/\D/g,'').slice(0,14); return d.replace(/(\d{3})(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})/, (m,a,b,c,e,f)=>[a,b,c,e,f].filter(x=>x!=='').join(' ')); }
@@ -1239,7 +1263,7 @@ function fillFromCompany(r){
   const dpp=dirs.find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
   // NE PAS écraser un représentant légal déjà saisi/choisi (lien /maj ou clic chip) — on ne renseigne que s'il est vide.
   if(dpp && !val('rlprenom') && !val('rlnom')){ setv('rlnom', dpp.nom); setv('rlprenom', dpp.prenoms); }
-  if(dpp && dpp.nationalite && !state.lcb.c_nationalite){ state.lcb.c_nationalite=normNat_(dpp.nationalite); }   // nationalité du dirigeant (data.gouv/INPI, déjà au féminin) -> pré-remplit si vide (modifiable au KYC)
+  if(dpp && dpp.nationalite && !state.lcb.c_nationalite){ state.lcb.c_nationalite=normNat_(dpp.nationalite); try{natP1Render_();}catch(e){} }   // nationalité du dirigeant (data.gouv/INPI, déjà au féminin) -> pré-remplit si vide (modifiable au KYC)
   if(val('rlprenom')||val('rlnom')) checkGerantMultiple(val('rlprenom'), val('rlnom'), r.siren);
   // Dirigeant(s) déclaré(s) — chips cliquables : on peut désigner le représentant légal
   state.dirigeants=dirs; renderDirChips();
@@ -1276,7 +1300,7 @@ function pickDir(i){
   const d=(state.dirigeants||[])[i]; if(!d) return;
   const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=(v||'').toUpperCase(); };
   set('rlprenom', d.prenoms||''); set('rlnom', d.nom||'');
-  if(d.nationalite){ state.lcb.c_nationalite=normNat_(d.nationalite); if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB(); }   // RL changé -> sa nationalité suit (modifiable)
+  if(d.nationalite){ state.lcb.c_nationalite=normNat_(d.nationalite); try{natP1Render_();}catch(e){} if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB(); }   // RL changé -> sa nationalité suit (modifiable)
   renderDirChips();
   checkGerantMultiple(d.prenoms||'', d.nom||'', (val('siren')||'').replace(/\s/g,''));
 }
@@ -1501,6 +1525,7 @@ function go(idx){
   withVT(()=>{
     PANELS.forEach(p=>{ const el=document.getElementById(p.panel); if(el) el.classList.toggle('on',p.panel===ap[idx].panel); });
     renderStepper();
+    try{ natP1Render_(); }catch(e){}   // nationalité page 1 : reflète l'état courant
     const pct=Math.round(((idx+1)/ap.length)*100);
     document.getElementById('barfill').style.width=pct+'%';
     document.querySelector('.bar').setAttribute('aria-valuenow',pct);
@@ -1521,7 +1546,7 @@ function validateForSend(){
   if(!val('centre')) return 'err_centre';
   // Associations : SIRET et TVA facultatifs (Annexe 2 : « s'ils existent »).
   const sirenOk = state.entity==='asso' ? val('siren') : (val('siren')&&val('siret')&&val('tva'));
-  const idOk=val('raison')&&val('forme')&&sirenOk&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse');
+  const idOk=val('raison')&&val('forme')&&sirenOk&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')&&String(state.lcb.c_nationalite||'').trim();
   if(!idOk) return 'err_ident';
   if(!state.bes.some(b=>b.prenom&&b.prenom.trim()&&b.nom&&b.nom.trim())) return 'err_be';   // au moins 1 bénéficiaire effectif
   if(!document.getElementById('sanction').checked) return 'err_sanc';
@@ -1643,6 +1668,7 @@ function autoSave_(){
              rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
              ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
              ppe:(document.querySelector('input[name=ppe]:checked')||{}).value||'non',
+             nationalite:normNat_((state.lcb.c_nationalite)||''),
              beneficiaires:state.bes.filter(x=>x.nom).map(x=>({prenom:x.prenom,nom:x.nom,pct:x.pct,tel:combineCC_(x.cc||'FR',x.tel),email:x.email,domicile:[x.rue,x.cp,x.ville,x.pays].filter(Boolean).join(', ')})),
              sanction:document.getElementById('sanction').checked,
              fiche_lcb:state.dom?ficheLCB():null,
@@ -1685,6 +1711,7 @@ function buildPayload(){
       rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
       owner:(function(o){return {prenom:o.prenom,nom:o.nom,email:o.email,tel:o.tel};})(ownerVals_()),
       ppe:document.querySelector('input[name=ppe]:checked').value,
+      nationalite:normNat_((state.lcb.c_nationalite)||''),   /* dirigeant — capté pour TOUS (domicilié ou non) -> récap + gsheet */
       beneficiaires:state.bes.filter(b=>b.nom).map(b=>({prenom:b.prenom,nom:b.nom,pct:b.pct,tel:combineCC_(b.cc||'FR',b.tel),email:b.email,domicile:[b.rue,b.cp,b.ville,b.pays].filter(Boolean).join(', ')})),
       sanction:document.getElementById('sanction').checked,
       fiche_lcb:state.dom?ficheLCB():null,
@@ -1744,6 +1771,7 @@ function prefillFromURL(){
       if(j.sanction){ var sc=document.getElementById('sanction'); if(sc) sc.checked=true; }
       if(j.fiche_lcb && j.fiche_lcb._raw){ Object.assign(state.lcb, j.fiche_lcb._raw); if(state.lcb.c_nationalite) state.lcb.c_nationalite=normNat_(state.lcb.c_nationalite); }   // recharge le questionnaire LCB-FT déjà rempli (nationalité ramenée au féminin)
       if(!state.lcb.c_nationalite && j.nationalite){ state.lcb.c_nationalite=normNat_(j.nationalite); }   // sinon, nationalité téléchargée à la création (data.gouv/INPI) -> pré-remplie, modifiable
+      try{ natP1Render_(); }catch(e){}   // reflète la nationalité rechargée dans le champ page 1
       if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB();
       if(j.rl_adresse){ var ra=document.getElementById('rladresse'); if(ra && !ra.value) ra.value=j.rl_adresse; }   // recharge l'adresse du représentant légal
     }).catch(function(){}); }catch(e){} }
