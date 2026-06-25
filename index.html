@@ -1597,13 +1597,15 @@ async function submitDossier(){
       const files=[];
       for(const f of payload.files){ files.push({docId:f.docId, name:f.name, mimeType:f.blob.type||'application/octet-stream', dataB64:await readB64(f.blob)}); }
       const body=JSON.stringify({meta:payload.meta,files});
-      // 1) Envoi (text/plain => requête "simple", pas de pré-vol CORS). On tente de lire le retour mais SANS s'y fier.
       let recu=false;
-      try{ const r=await fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body}); if(r&&r.ok) recu=true; }catch(e){ /* réponse illisible -> on vérifiera */ }
-      // 2) Vérification de réception serveur via GET (fiable cross-origin). Le serveur marque la réception dès réception.
-      for(let i=0;i<12 && !recu;i++){
-        await new Promise(res=>setTimeout(res,2500));
-        try{ const v=await fetch(CONFIG.ENDPOINT+'?recu='+encodeURIComponent(submitId)); const j=await v.json(); if(j&&j.recu) recu=true; }catch(e){}
+      // 1) Envoi EN PARALLÈLE (on NE bloque PAS dessus) : la réponse du POST Apps Script reste souvent « pending »
+      //    alors que le serveur a déjà reçu et enregistré. On note juste le succès si la réponse finit par arriver.
+      fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body}).then(function(r){ if(r&&r.ok) recu=true; }).catch(function(){});
+      // 2) Vérification de réception via GET (fiable cross-origin) : le serveur marque RECU_ dès réception du POST.
+      //    On commence tout de suite et on laisse le temps au téléversement (pièces lourdes) d'arriver côté serveur.
+      for(let i=0;i<25 && !recu;i++){
+        await new Promise(res=>setTimeout(res,2000));
+        try{ const v=await fetch(CONFIG.ENDPOINT+'?recu='+encodeURIComponent(submitId),{cache:'no-store'}); const j=await v.json(); if(j&&j.recu) recu=true; }catch(e){}
       }
       if(!recu) throw new Error('non confirmé');
     } else {
