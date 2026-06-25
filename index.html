@@ -1594,7 +1594,7 @@ async function submitDossier(){
   try{
     if(CONFIG.ENDPOINT){
       const files=[];
-      for(const f of payload.files){ files.push({docId:f.docId, name:f.name, mimeType:f.blob.type||'application/octet-stream', dataB64:await readB64(f.blob)}); }
+      for(const f of payload.files){ if(!f.blob) continue; files.push({docId:f.docId, name:f.name, mimeType:f.blob.type||'application/octet-stream', dataB64:await readB64(f.blob)}); }
       const body=JSON.stringify({meta:payload.meta,files});
       let recu=false;
       // 1) Envoi EN PARALLÈLE (on NE bloque PAS dessus) : la réponse du POST Apps Script reste souvent « pending »
@@ -1733,7 +1733,10 @@ function buildPayload(){
       pieces:ids.map(id=>({id,label:DOC[id].fr,fourni:!!state.files[id],fichier:state.files[id]?fmtFileName(id,state.files[id].name):null})),
       centre:CONFIG.CENTRE_EMAIL, lang:state.lang
     },
-    files:ids.filter(id=>state.files[id]).map(id=>({docId:id,name:fmtFileName(id,state.files[id].name),blob:state.files[id].blob}))
+    // UNIQUEMENT les pièces réellement (re)déposées par le client = celles qui ont un blob. Les pièces déjà détenues
+    // (chargées depuis Archie au /maj : métadonnée seule, SANS blob) ne sont PAS renvoyées (déjà en notre possession)
+    // — sinon readB64(undefined) plantait l'envoi (faux « Échec de l'envoi » avant même le POST).
+    files:ids.filter(id=>state.files[id] && state.files[id].blob).map(id=>({docId:id,name:fmtFileName(id,state.files[id].name),blob:state.files[id].blob}))
   };
 }
 
