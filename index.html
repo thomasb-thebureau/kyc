@@ -1546,12 +1546,12 @@ function validateForSend(){
   if(!val('centre')) return 'err_centre';
   // Associations : SIRET et TVA facultatifs (Annexe 2 : « s'ils existent »).
   const sirenOk = state.entity==='asso' ? val('siren') : (val('siren')&&val('siret')&&val('tva'));
-  const idOk=val('raison')&&val('forme')&&sirenOk&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')&&String(state.lcb.c_nationalite||'').trim();
+  // Identité essentielle (toujours rechargée au /maj : URL + ?card=). Nationalité = pré-remplie data.gouv/INPI -> non bloquante.
+  const idOk=val('raison')&&sirenOk&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'));
   if(!idOk) return 'err_ident';
-  if(!state.bes.some(b=>b.prenom&&b.prenom.trim()&&b.nom&&b.nom.trim())) return 'err_be';   // au moins 1 bénéficiaire effectif
-  if(!document.getElementById('sanction').checked) return 'err_sanc';
-  if(state.dom && !lcbRequired().every(id=>state.lcb[id]&&String(state.lcb[id]).trim())) return 'err_lcb';
-  if(!document.getElementById('rgpd').checked) return 'err_rgpd';
+  // Bénéficiaires effectifs : NON obligatoires pour valider (les BE déjà saisis restent enregistrés côté serveur).
+  // Documents : NON bloquants (les pièces manquantes sont signalées au récap, mais le dossier reste validable).
+  if(!document.getElementById('rgpd').checked) return 'err_rgpd';   // seul consentement RGPD requis pour soumettre
   return null;
 }
 function val(id){ return document.getElementById(id).value.trim(); }
@@ -1766,7 +1766,7 @@ function prefillFromURL(){
     if(!siren && !raison && !email) return;   // lien standard -> aucun pré-remplissage
     if(u) state.archieUuid=u;                 // mode /maj : le compte Archie existe déjà
     // Attestation « sanctions & gel des avoirs » : restaurée si elle a déjà été cochée (persistée côté serveur)
-    if(u && CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)).then(function(r){return r.json();}).then(function(j){
+    if(u && CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)+(siren?'&sn='+encodeURIComponent(siren):'')).then(function(r){return r.json();}).then(function(j){
       if(!j||!j.ok) return;
       if(j.sanction){ var sc=document.getElementById('sanction'); if(sc) sc.checked=true; }
       if(j.fiche_lcb && j.fiche_lcb._raw){ Object.assign(state.lcb, j.fiche_lcb._raw); if(state.lcb.c_nationalite) state.lcb.c_nationalite=normNat_(state.lcb.c_nationalite); }   // recharge le questionnaire LCB-FT déjà rempli (nationalité ramenée au féminin)
@@ -1799,14 +1799,14 @@ function prefillFromURL(){
           if(typeof renderDirChips==='function') renderDirChips();   // resélectionne la bonne puce
           renderStepper();
           if(u) loadClientFiles(u);             // pièces déjà en notre possession (Archie) -> checklist
-        }).catch(function(){ if(u){ loadClientFiles(u); loadCardFromArchie(u); } });
-    } else if(u){ loadClientFiles(u); loadCardFromArchie(u); }   // pas de SIRET -> identité de la structure depuis Archie
+        }).catch(function(){ if(u){ loadClientFiles(u); loadCardFromArchie(u,siren); } });
+    } else if(u){ loadClientFiles(u); loadCardFromArchie(u,siren); }   // pas de SIRET -> identité de la structure depuis Archie
   }catch(e){}
 }
 /* /maj sans SIRET exploitable — pré-remplit l'identité de la structure (adresse, etc.) depuis le compte Archie. */
-function loadCardFromArchie(u){
+function loadCardFromArchie(u,sn){
   if(!CONFIG.ENDPOINT || !u) return;
-  fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)).then(function(r){return r.json();}).then(function(j){
+  fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)+(sn?'&sn='+encodeURIComponent(sn):'')).then(function(r){return r.json();}).then(function(j){
     if(!j || !j.ok) return;
     var setIfEmpty=function(id,v){ var el=document.getElementById(id); if(el && v && !String(el.value||'').trim()) el.value=v; };
     setIfEmpty('raison', j.raison);
