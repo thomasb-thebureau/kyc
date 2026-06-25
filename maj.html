@@ -1791,6 +1791,13 @@ function prefillFromURL(){
       try{ natP1Render_(); }catch(e){}   // reflète la nationalité rechargée dans le champ page 1
       if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB();
       if(j.rl_adresse){ var ra=document.getElementById('rladresse'); if(ra && !ra.value) ra.value=j.rl_adresse; }   // recharge l'adresse du représentant légal
+      if(j.rl_email){ var em=document.getElementById('email'); if(em && !em.value) em.value=j.rl_email; }            // recharge e-mail RL
+      if(j.rl_tel && !val('tel')){ try{ setPhoneField_('telCC','tel',j.rl_tel); }catch(e){} }                       // recharge tél RL
+      if(j.ppe){ var pr=document.querySelector('input[name=ppe][value="'+j.ppe+'"]'); if(pr) pr.checked=true; }      // recharge la déclaration PPE
+      if(j.beneficiaires && j.beneficiaires.length){                                                                // recharge les bénéficiaires effectifs déjà saisis
+        state.bes=j.beneficiaires.map(function(b){ return {prenom:b.prenom||'',nom:b.nom||'',rue:b.domicile||'',cp:'',ville:'',pays:'',pct:b.pct||'',cc:'FR',tel:b.tel||'',email:b.email||''}; });
+        try{ if(typeof renderBE==='function' && document.getElementById('beList')) renderBE(); }catch(e){}
+      }
     }).catch(function(){}); }catch(e){} }
     var setv=function(id,v){ var el=document.getElementById(id); if(el && v) el.value=v; };
     if(centre){ var cs=document.getElementById('centre'); if(cs){ cs.value=centre; centreStyle(); } }
