@@ -1227,6 +1227,7 @@ function fillFromCompany(r){
   const dpp=dirs.find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
   // NE PAS écraser un représentant légal déjà saisi/choisi (lien /maj ou clic chip) — on ne renseigne que s'il est vide.
   if(dpp && !val('rlprenom') && !val('rlnom')){ setv('rlnom', dpp.nom); setv('rlprenom', dpp.prenoms); }
+  if(dpp && dpp.nationalite && !state.lcb.c_nationalite){ state.lcb.c_nationalite=normNat_(dpp.nationalite); }   // nationalité du dirigeant (data.gouv/INPI, déjà au féminin) -> pré-remplit si vide (modifiable au KYC)
   if(val('rlprenom')||val('rlnom')) checkGerantMultiple(val('rlprenom'), val('rlnom'), r.siren);
   // Dirigeant(s) déclaré(s) — chips cliquables : on peut désigner le représentant légal
   state.dirigeants=dirs; renderDirChips();
@@ -1263,6 +1264,7 @@ function pickDir(i){
   const d=(state.dirigeants||[])[i]; if(!d) return;
   const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=(v||'').toUpperCase(); };
   set('rlprenom', d.prenoms||''); set('rlnom', d.nom||'');
+  if(d.nationalite){ state.lcb.c_nationalite=normNat_(d.nationalite); if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB(); }   // RL changé -> sa nationalité suit (modifiable)
   renderDirChips();
   checkGerantMultiple(d.prenoms||'', d.nom||'', (val('siren')||'').replace(/\s/g,''));
 }
@@ -1714,7 +1716,9 @@ function prefillFromURL(){
     if(u && CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)).then(function(r){return r.json();}).then(function(j){
       if(!j||!j.ok) return;
       if(j.sanction){ var sc=document.getElementById('sanction'); if(sc) sc.checked=true; }
-      if(j.fiche_lcb && j.fiche_lcb._raw){ Object.assign(state.lcb, j.fiche_lcb._raw); if(state.lcb.c_nationalite) state.lcb.c_nationalite=normNat_(state.lcb.c_nationalite); if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB(); }   // recharge le questionnaire LCB-FT déjà rempli (nationalité ramenée au féminin)
+      if(j.fiche_lcb && j.fiche_lcb._raw){ Object.assign(state.lcb, j.fiche_lcb._raw); if(state.lcb.c_nationalite) state.lcb.c_nationalite=normNat_(state.lcb.c_nationalite); }   // recharge le questionnaire LCB-FT déjà rempli (nationalité ramenée au féminin)
+      if(!state.lcb.c_nationalite && j.nationalite){ state.lcb.c_nationalite=normNat_(j.nationalite); }   // sinon, nationalité téléchargée à la création (data.gouv/INPI) -> pré-remplie, modifiable
+      if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB();
       if(j.rl_adresse){ var ra=document.getElementById('rladresse'); if(ra && !ra.value) ra.value=j.rl_adresse; }   // recharge l'adresse du représentant légal
     }).catch(function(){}); }catch(e){} }
     var setv=function(id,v){ var el=document.getElementById(id); if(el && v) el.value=v; };
