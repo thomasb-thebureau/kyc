@@ -1636,11 +1636,16 @@ function autoSave_(){
   try{
     if(!CONFIG.ENDPOINT || !val('raison')) return;
     const ow=ownerVals_();
-    const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
-             siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
+    const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), forme:val('forme'),
+             siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''),
+             rna:val('rna'), adresse:val('adresse'), etranger:state.etranger, entity:state.entity,
              email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
              rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
              ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
+             ppe:(document.querySelector('input[name=ppe]:checked')||{}).value||'non',
+             beneficiaires:state.bes.filter(x=>x.nom).map(x=>({prenom:x.prenom,nom:x.nom,pct:x.pct,tel:combineCC_(x.cc||'FR',x.tel),email:x.email,domicile:[x.rue,x.cp,x.ville,x.pays].filter(Boolean).join(', ')})),
+             sanction:document.getElementById('sanction').checked,
+             fiche_lcb:state.dom?ficheLCB():null,
              centre:val('centre'), dom:state.dom?1:0, lcb:state.lcb||null, files:[]};
     fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
       .then(function(r){return r.json();}).then(function(j){ if(j&&j.uuid) state.archieUuid=j.uuid; toastSave_(state.lang==='en'?'✓ Saved':'✓ Enregistré'); }).catch(function(){});
