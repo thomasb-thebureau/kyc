@@ -944,7 +944,8 @@ const LCB_IDENT=[
   {id:'c_datecrea',k:'date',label:{fr:'Date de création de la société',en:'Date of incorporation'}},
   {id:'c_nationalite',k:'nat',label:{fr:'Nationalité du dirigeant',en:'Director\'s nationality'}},
   {id:'c_rldom', k:'address', label:{fr:'Domicile du représentant légal',en:'Home address of legal representative'}},
-  {id:'c_compta',k:'textarea',label:{fr:'Lieu de conservation des documents comptables',en:'Where accounting records are kept'}}
+  {id:'c_compta_nom',k:'text',label:{fr:'Documents comptables — nom du cabinet / de l\'entité qui les conserve',en:'Accounting records — name of the firm/entity keeping them'}},
+  {id:'c_compta_adr',k:'address',label:{fr:'Documents comptables — adresse de conservation',en:'Accounting records — address'}}
 ];
 
 /* Les 13 questions de la fiche */
@@ -1094,9 +1095,10 @@ function renderLCB(){
     </div>
     <div class="card"><h3 class="sec">${L({fr:'Attestation sur l\'honneur',en:'Sworn statement'})}</h3>
       <p style="font-size:13px;color:var(--gris);margin:0 0 12px">${L({fr:'Je soussigné·e',en:'I, the undersigned,'})} <b>${esc((val('rlprenom')+' '+val('rlnom')).trim()||'—')}</b>, ${L({fr:'pour la société',en:'for'})} <b>${esc(val('raison')||'—')}</b>, ${L({fr:'atteste sur l\'honneur :',en:'hereby declare on my honour:'})}</p>
-      ${fieldHTML(lcbId('c_compta'))}
+      ${fieldHTML(lcbId('c_compta_nom'))}
+      ${fieldHTML(lcbId('c_compta_adr'))}
       ${yesnoHTML({id:'a_eng',label:{fr:'Je m\'engage, en cas de vérification, à mettre ces documents à disposition de l\'administration à l\'adresse de domiciliation (art. L7-4 du livre des procédures fiscales).',en:'I undertake, in the event of an audit, to make these documents available to the authorities at the domiciliation address (art. L7-4 of the French tax procedure code).'}})}
-      ${yesnoHTML({id:'a_sal',label:{fr:'La société emploie-t-elle des salariés ?',en:'Does the company employ staff?'},onYes:[{id:'a_sal_adr',k:'textarea',label:{fr:'Adresse où sont tenus les documents sociaux obligatoires (registre unique du personnel, bulletins de paie, récépissés DPAE…)',en:'Address where mandatory employment records are kept (staff register, payslips, hiring declarations…)'}}]})}
+      ${yesnoHTML({id:'a_sal',label:{fr:'La société emploie-t-elle des salariés ? (registre unique du personnel, bulletins de paie, récépissés DPAE…)',en:'Does the company employ staff?'},onYes:[{id:'a_sal_nom',k:'text',label:{fr:'Documents sociaux — nom de l\'entité qui les conserve',en:'Employment records — name of the entity keeping them'}},{id:'a_sal_adr',k:'address',label:{fr:'Documents sociaux — adresse de conservation',en:'Employment records — address'}}]})}
     </div>`;
   initGooglePlaces(); attachPlaces();
 }
@@ -1417,7 +1419,7 @@ function lcbRequired(){
     else if(q.kind){ req.push(q.id); }
     else { req.push(q.id); const a=state.lcb[q.id]; if(a==='oui'&&q.onYes) walk(q.onYes); if(a==='non'&&q.onNo) walk(q.onNo); }
   });
-  req.push('a_eng','a_sal'); if(state.lcb.a_sal==='oui') req.push('a_sal_adr');   // attestation sur l'honneur (domiciliation)
+  req.push('a_eng','a_sal'); if(state.lcb.a_sal==='oui') req.push('a_sal_nom','a_sal_adr_rue');   // attestation sur l'honneur (compta nom+adresse via LCB_IDENT ; sociaux ici)
   return req;
 }
 function validateLCB(){
@@ -1435,7 +1437,10 @@ function ficheLCB(){
   // Attestation sur l'honneur (domiciliation) -> dans l'identité = repris automatiquement dans le récapitulatif.
   out.identite.a_eng={label:'Engagement mise à disposition à l\'adresse de domiciliation (art. L7-4 LPF)',valeur:state.lcb.a_eng||''};
   out.identite.a_sal={label:'Emploie des salariés',valeur:state.lcb.a_sal||''};
-  if(state.lcb.a_sal==='oui') out.identite.a_sal_adr={label:'Adresse de conservation des documents sociaux',valeur:state.lcb.a_sal_adr||''};
+  if(state.lcb.a_sal==='oui'){
+    out.identite.a_sal_nom={label:'Documents sociaux — nom de l\'entité',valeur:state.lcb.a_sal_nom||''};
+    out.identite.a_sal_adr={label:'Documents sociaux — adresse de conservation',valeur:['_rue','_cp','_ville','_pays'].map(s=>state.lcb['a_sal_adr'+s]).filter(Boolean).join(', ')};
+  }
   function sub(fields){ return fields.map(f=>f.k==='yesno'
     ? {label:f.label.fr,reponse:state.lcb[f.id]||'',details:sub((state.lcb[f.id]==='oui'?f.onYes:f.onNo)||[])}
     : {label:f.label.fr,valeur:state.lcb[f.id]||''}); }
