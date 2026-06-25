@@ -1088,10 +1088,15 @@ function renderLCB(){
       <div class="rl-recap">${L(LCBT.rl_recap)} : <b>${esc((val('rlprenom')+' '+val('rlnom')).trim()||'—')}</b> · ${esc(val('email')||'—')} · ${esc(val('tel')||'—')}${val('rladresse')?(' · '+esc(val('rladresse'))):''}</div>
       ${fieldHTML(lcbId('c_nationalite'))}
       ${fieldHTML(lcbId('c_rldom'))}
-      ${fieldHTML(lcbId('c_compta'))}
     </div>
     <div class="card"><h3 class="sec">${L(LCBT.quest)}</h3>
       ${LCB_Q.map((q,i)=>questionHTML(q,i+1)).join('')}
+    </div>
+    <div class="card"><h3 class="sec">${L({fr:'Attestation sur l\'honneur',en:'Sworn statement'})}</h3>
+      <p style="font-size:13px;color:var(--gris);margin:0 0 12px">${L({fr:'Je soussigné·e',en:'I, the undersigned,'})} <b>${esc((val('rlprenom')+' '+val('rlnom')).trim()||'—')}</b>, ${L({fr:'pour la société',en:'for'})} <b>${esc(val('raison')||'—')}</b>, ${L({fr:'atteste sur l\'honneur :',en:'hereby declare on my honour:'})}</p>
+      ${fieldHTML(lcbId('c_compta'))}
+      ${yesnoHTML({id:'a_eng',label:{fr:'Je m\'engage, en cas de vérification, à mettre ces documents à disposition de l\'administration à l\'adresse de domiciliation (art. L7-4 du livre des procédures fiscales).',en:'I undertake, in the event of an audit, to make these documents available to the authorities at the domiciliation address (art. L7-4 of the French tax procedure code).'}})}
+      ${yesnoHTML({id:'a_sal',label:{fr:'La société emploie-t-elle des salariés ?',en:'Does the company employ staff?'},onYes:[{id:'a_sal_adr',k:'textarea',label:{fr:'Adresse où sont tenus les documents sociaux obligatoires (registre unique du personnel, bulletins de paie, récépissés DPAE…)',en:'Address where mandatory employment records are kept (staff register, payslips, hiring declarations…)'}}]})}
     </div>`;
   initGooglePlaces(); attachPlaces();
 }
@@ -1412,6 +1417,7 @@ function lcbRequired(){
     else if(q.kind){ req.push(q.id); }
     else { req.push(q.id); const a=state.lcb[q.id]; if(a==='oui'&&q.onYes) walk(q.onYes); if(a==='non'&&q.onNo) walk(q.onNo); }
   });
+  req.push('a_eng','a_sal'); if(state.lcb.a_sal==='oui') req.push('a_sal_adr');   // attestation sur l'honneur (domiciliation)
   return req;
 }
 function validateLCB(){
@@ -1426,6 +1432,10 @@ function ficheLCB(){
     if(f.k==='address'){ const a=['_rue','_cp','_ville','_pays'].map(s=>state.lcb[f.id+s]).filter(Boolean).join(', '); out.identite[f.id]={label:f.label.fr,valeur:a}; }
     else out.identite[f.id]={label:f.label.fr,valeur:state.lcb[f.id]||''};
   });
+  // Attestation sur l'honneur (domiciliation) -> dans l'identité = repris automatiquement dans le récapitulatif.
+  out.identite.a_eng={label:'Engagement mise à disposition à l\'adresse de domiciliation (art. L7-4 LPF)',valeur:state.lcb.a_eng||''};
+  out.identite.a_sal={label:'Emploie des salariés',valeur:state.lcb.a_sal||''};
+  if(state.lcb.a_sal==='oui') out.identite.a_sal_adr={label:'Adresse de conservation des documents sociaux',valeur:state.lcb.a_sal_adr||''};
   function sub(fields){ return fields.map(f=>f.k==='yesno'
     ? {label:f.label.fr,reponse:state.lcb[f.id]||'',details:sub((state.lcb[f.id]==='oui'?f.onYes:f.onNo)||[])}
     : {label:f.label.fr,valeur:state.lcb[f.id]||''}); }
