@@ -1168,7 +1168,7 @@ function cbPick(fieldId,name){ state.lcb[fieldId]=name; renderLCB(); }
 
 /* Nationalité du dirigeant — combo dédié PAGE 1 (id natP1), clé partagée state.lcb.c_nationalite -> liée à la fiche LCB-FT.
    Capté pour TOUS (domicilié ou non) : remonte au récap + gsheet via le champ nationalite du payload. */
-function natP1Flag_(){ var f=document.getElementById('natP1_flag'); if(!f) return; var v=state.lcb.c_nationalite||''; var it=CB_LISTS.nat().find(function(p){return p.name===v;}); if(it&&it.iso){ f.innerHTML=flagImg(it.iso); f.style.display=''; } else { f.innerHTML=''; f.style.display='none'; } }
+function natP1Flag_(){ var f=document.getElementById('natP1_flag'), inp=document.getElementById('natP1_cb'); if(!f) return; var v=state.lcb.c_nationalite||''; var it=CB_LISTS.nat().find(function(p){return p.name===v;}); var on=!!(it&&it.iso); if(on){ f.innerHTML=flagImg(it.iso); f.style.display=''; } else { f.innerHTML=''; f.style.display='none'; } if(inp) inp.classList.toggle('has-flag',on); }
 function natP1Render_(){ var inp=document.getElementById('natP1_cb'); if(inp && document.activeElement!==inp) inp.value=state.lcb.c_nationalite||''; natP1Flag_(); }
 function natP1Filter(){ var inp=document.getElementById('natP1_cb'), box=document.getElementById('natP1_list'); if(!inp||!box) return;
   state.lcb.c_nationalite=inp.value; var q=norm(inp.value.trim());
