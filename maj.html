@@ -1586,13 +1586,26 @@ async function submitDossier(){
   if(miss){ show('err3',false,miss); return; }
   const btn=document.getElementById('sendBtn'); btn.disabled=true;
   const payload=buildPayload();
+  // Identifiant de soumission unique -> permet de VÉRIFIER la réception côté serveur via un GET fiable.
+  // (La réponse du POST Apps Script est parfois illisible par le navigateur — redirection cross-origin /
+  //  latence — alors que le serveur a bien reçu ET enregistré le dossier. On ne se fie donc PLUS au POST :
+  //  on confirme la réception par un GET, ce qui supprime les faux « Échec de l'envoi ».)
+  const submitId=(val('siren').replace(/\D/g,'')||'NM')+'X'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);
+  payload.meta.submitId=submitId;
   try{
     if(CONFIG.ENDPOINT){
       const files=[];
       for(const f of payload.files){ files.push({docId:f.docId, name:f.name, mimeType:f.blob.type||'application/octet-stream', dataB64:await readB64(f.blob)}); }
-      // text/plain => requête "simple" : pas de pré-vol CORS bloquant pour Apps Script
-      const r=await fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({meta:payload.meta,files})});
-      if(!r.ok) throw new Error('HTTP '+r.status);
+      const body=JSON.stringify({meta:payload.meta,files});
+      // 1) Envoi (text/plain => requête "simple", pas de pré-vol CORS). On tente de lire le retour mais SANS s'y fier.
+      let recu=false;
+      try{ const r=await fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body}); if(r&&r.ok) recu=true; }catch(e){ /* réponse illisible -> on vérifiera */ }
+      // 2) Vérification de réception serveur via GET (fiable cross-origin). Le serveur marque la réception dès réception.
+      for(let i=0;i<12 && !recu;i++){
+        await new Promise(res=>setTimeout(res,2500));
+        try{ const v=await fetch(CONFIG.ENDPOINT+'?recu='+encodeURIComponent(submitId)); const j=await v.json(); if(j&&j.recu) recu=true; }catch(e){}
+      }
+      if(!recu) throw new Error('non confirmé');
     } else {
       await new Promise(res=>setTimeout(res,700)); // mode démo
       console.log('[DÉMO] Dossier (aucun ENDPOINT configuré) :', payload.meta);
