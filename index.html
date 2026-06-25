@@ -1544,10 +1544,9 @@ function validate(key){ return true; }
 /* Contrôle de complétude au moment de l'envoi (champs * + fiche LCB le cas échéant). */
 function validateForSend(){
   if(!val('centre')) return 'err_centre';
-  // Associations : SIRET et TVA facultatifs (Annexe 2 : « s'ils existent »).
-  const sirenOk = state.entity==='asso' ? val('siren') : (val('siren')&&val('siret')&&val('tva'));
-  // Identité essentielle (toujours rechargée au /maj : URL + ?card=). Nationalité = pré-remplie data.gouv/INPI -> non bloquante.
-  const idOk=val('raison')&&sirenOk&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'));
+  // Identité MINIMALE pour soumettre : dénomination + identifiant (SIREN, ou nom seul si pas de SIREN) + nom du RL.
+  // SIRET, TVA, e-mail, tél, adresse, nationalité = NON bloquants (souvent absents au /maj, complétés côté back-office).
+  const idOk=val('raison')&&val('rlprenom')&&val('rlnom');
   if(!idOk) return 'err_ident';
   // Bénéficiaires effectifs : NON obligatoires pour valider (les BE déjà saisis restent enregistrés côté serveur).
   // Documents : NON bloquants (les pièces manquantes sont signalées au récap, mais le dossier reste validable).
@@ -1615,7 +1614,7 @@ async function submitDossier(){
     state.submitted=true;
     withVT(()=>{ document.getElementById('recapWrap').style.display='none'; document.getElementById('successCard').style.display='block'; });
     window.scrollTo({top:0,behavior:'smooth'});
-  }catch(e){ btn.disabled=false; const el=document.getElementById('err3'); el.textContent='⚠ '+(state.lang==='en'?'Sending failed, please retry.':'Échec de l\'envoi, merci de réessayer.'); el.classList.add('on'); }
+  }catch(e){ btn.disabled=false; try{ console.error('[KYC] envoi KO', submitId, e); }catch(_){ } const el=document.getElementById('err3'); el.textContent='⚠ '+(state.lang==='en'?'Sending failed, please retry.':'Échec de l\'envoi, merci de réessayer.')+' (réf. '+submitId+')'; el.classList.add('on'); }
 }
 /* Contact propriétaire : case « identique au représentant légal » -> masque/affiche les champs. */
 function toggleOwnerSame(){ var c=document.getElementById('ownerSame'), f=document.getElementById('ownerFields'); if(f) f.style.display=(!c||c.checked)?'none':'block'; }
