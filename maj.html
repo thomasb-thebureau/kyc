@@ -397,7 +397,7 @@ body.dark .page-sub b{color:var(--ivoire)}
         <div class="fg"><label class="fl" for="forme" data-i="f_forme">Forme juridique <span class="req">*</span></label>
           <select class="fsel" id="forme">
             <option value="" data-i="forme_ph">Sélectionnez…</option>
-            <option>SAS</option><option>SASU</option><option>SARL</option><option>EURL</option><option>SA</option><option>SCA</option><option>SNC</option><option>SCI</option><option>SCM</option><option>SCP</option><option>SCOP</option><option>Auto-entrepreneur / EI</option><option>EIRL</option><option>Agent commercial</option><option>Association</option><option>Fondation</option><option>Fonds de dotation</option><option value="autre" data-i="forme_autre">Autre</option>
+            <option>SAS</option><option>SASU</option><option>SARL</option><option>EURL</option><option>SA</option><option>SCA</option><option>SNC</option><option>SCI</option><option>SCM</option><option>SCP</option><option>SCOP</option><option>Auto-entrepreneur / EI</option><option>Agent commercial</option><option>Association</option><option>Fondation</option><option>Fonds de dotation</option><option value="autre" data-i="forme_autre">Autre</option>
           </select>
         </div>
       </div>
@@ -627,7 +627,7 @@ const CENTRES = [
 ];
 const ENTITIES = {
   societe:  {fr:'Société (civile ou commerciale)', en:'Company (civil or commercial)', dfr:'SAS, SARL, SCI, SA…', den:'SAS, SARL, SCI, SA…'},
-  eirl:     {fr:'EIRL', en:'EIRL (sole trader)', dfr:'Entrepreneur individuel à responsabilité limitée', den:'Limited-liability sole trader'},
+  eirl:     {fr:'Entrepreneur individuel', en:'Sole trader (entrepreneur individuel)', dfr:'Statut unique depuis 2022 (l\'EIRL a été supprimé par décret ; inclut EI et micro-entrepreneur)', den:'Unified status since 2022 (EIRL abolished; incl. sole trader & micro-entrepreneur)'},
   agent:    {fr:'Agent commercial', en:'Commercial agent', dfr:'Inscrit au RSAC', den:'Registered on the RSAC'},
   asso:     {fr:'Fonds de dotation / Fondation / Association', en:'Endowment fund / Foundation / Association', dfr:'Y compris reconnues d\'utilité publique', den:'Including public-interest bodies'}
 };
@@ -664,8 +664,8 @@ const REQS = {
     oui: ['cni','jdom_rl','lieux','kbis','statuts','capital','pv_nom','pouvoirs','rib']
   },
   eirl: {
-    non: ['cni','rseirl','recepisse','rib'],
-    oui: ['cni','jdom_rl','lieux','rseirl','recepisse','statuts','rib']
+    non: ['cni','recepisse','rib'],
+    oui: ['cni','jdom_rl','lieux','recepisse','statuts','rib']
   },
   agent: {
     non: ['cni','rsac','recepisse','rib'],
