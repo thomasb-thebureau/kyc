@@ -1852,7 +1852,9 @@ function prefillFromURL(){
           var res=(j.results||[]).filter(function(x){return x.siren===siren;})[0]||(j.results||[])[0];
           if(!res){ if(u){ loadClientFiles(u); loadCardFromArchie(u,siren); } return; }
           state._majCompany=res;
-          var want=siretParam||state._clientSiret||(q.length===14?q:'');
+          // On sélectionne l'établissement RÉELLEMENT interrogé (q, si c'est un SIRET 14 chiffres) ;
+          // sinon on retombe sur le SIRET client connu (fiche prioritaire sur le lien, qui peut être périmé).
+          var want=(q.length===14)?q:(state._clientSiret||siretParam||'');
           fillFromCompany(res, pickEtab_(res, want));   // établissement client précis (secondaire si SIRET connu)
           reassertClientIdentity_();                    // filet : valeurs fiche si data.gouv n'a pas l'établissement
           var i=document.getElementById('coSearch'); if(i){ i.value='✅ '+(raison||res.nom_raison_sociale||res.nom_complet||''); i.classList.add('cs-ok'); i.setAttribute('aria-expanded','false'); }
