@@ -1239,16 +1239,27 @@ function pickEtab_(r, siret){
   const m=(r.matching_etablissements||[]).find(function(e){return String(e.siret||'')===siret;});
   return m||sg;
 }
-/* /maj — applique le SIRET client (établissement) connu d'Archie : choisit le bon
-   établissement de la société déjà chargée (siège OU secondaire) et corrige SIRET + adresse.
-   Si la société n'est pas encore chargée, mémorise le SIRET pour la sélection à venir. */
-function applyClientSiret_(siret){
-  siret=String(siret||'').replace(/\D/g,''); if(!siret) return;
-  state._majSiret=siret;
-  var r=state._majCompany; if(!r) return;
-  var e=pickEtab_(r, siret); if(!e) return;
-  var si=document.getElementById('siret'); if(si && e.siret) si.value=fmtSiret(e.siret);
-  var ad=document.getElementById('adresse'); if(ad && e.adresse) ad.value=e.adresse;
+/* /maj — l'établissement CLIENT tel qu'enregistré dans la fiche (SIRET + adresse) fait FOI.
+   On mémorise ces valeurs (source de vérité), reprises soit du champ de tête (j.siret / j.adresse),
+   soit de la fiche LCB-FT (_raw.c_rcs / identite.c_siege). Elles servent à interroger data.gouv
+   PAR SIRET (établissement précis) et de filet si data.gouv ne remonte pas l'établissement. */
+function applyClientCard_(j){
+  if(!j) return;
+  var raw=((j.fiche_lcb||{})._raw)||{}, ident=((j.fiche_lcb||{}).identite)||{};
+  var siret=String(j.siret||raw.c_rcs||'').replace(/\D/g,'');
+  var adr=j.adresse||'';
+  var tail=[j.cp, j.ville].filter(Boolean).join(' ');
+  if(adr && j.cp && String(adr).toUpperCase().indexOf(String(j.cp))<0) adr=[adr,tail].filter(Boolean).join(' ');
+  if(!adr && ident.c_siege) adr=ident.c_siege.valeur||'';
+  if(siret) state._clientSiret=siret;
+  if(adr) state._clientAdresse=adr;
+  reassertClientIdentity_();
+}
+/* Repli : n'écrit le SIRET/adresse client QUE si le champ est encore vide (ne dégrade pas
+   une adresse data.gouv plus complète), pour couvrir le cas où data.gouv n'a pas l'établissement. */
+function reassertClientIdentity_(){
+  if(state._clientSiret){ var si=document.getElementById('siret'); if(si && !String(si.value||'').replace(/\D/g,'')) si.value=fmtSiret(state._clientSiret); }
+  if(state._clientAdresse){ var ad=document.getElementById('adresse'); if(ad && !String(ad.value||'').trim()) ad.value=state._clientAdresse; }
 }
 function esc(s){ return String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 function coHide(){ setTimeout(()=>{ const b=document.getElementById('coList'); if(b) b.style.display='none'; const i=document.getElementById('coSearch'); if(i) i.setAttribute('aria-expanded','false'); },180); }
@@ -1825,25 +1836,34 @@ function prefillFromURL(){
         dom=p.get('dom')||'', u=p.get('u')||'';
     if(!siren && !raison && !email) return;   // lien standard -> aucun pré-remplissage
     if(u) state.archieUuid=u;                 // mode /maj : le compte Archie existe déjà
-    // Attestation « sanctions & gel des avoirs » : restaurée si elle a déjà été cochée (persistée côté serveur)
-    if(u && CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)+(siren?'&sn='+encodeURIComponent(siren):'')).then(function(r){return r.json();}).then(function(j){
-      if(!j||!j.ok) return;
-      if(j.siret) applyClientSiret_(j.siret);   // SIRET client stocké dans Archie -> sélectionne le bon établissement (siège ou secondaire)
-      if(j.sanction){ var sc=document.getElementById('sanction'); if(sc) sc.checked=true; }
-      if(j.fiche_lcb && j.fiche_lcb._raw){ Object.assign(state.lcb, j.fiche_lcb._raw); if(state.lcb.c_nationalite) state.lcb.c_nationalite=normNat_(state.lcb.c_nationalite); }   // recharge le questionnaire LCB-FT déjà rempli (nationalité ramenée au féminin)
-      if(!state.lcb.c_nationalite && j.nationalite){ state.lcb.c_nationalite=normNat_(j.nationalite); }   // sinon, nationalité téléchargée à la création (data.gouv/INPI) -> pré-remplie, modifiable
-      try{ natP1Render_(); }catch(e){}   // reflète la nationalité rechargée dans le champ page 1
-      if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB();
-      if(j.rl_adresse){ var ra=document.getElementById('rladresse'); if(ra && !ra.value) ra.value=j.rl_adresse; }   // recharge l'adresse du représentant légal
-      if(j.rl_email){ var em=document.getElementById('email'); if(em && !em.value) em.value=j.rl_email; }            // recharge e-mail RL
-      if(j.rl_tel && !val('tel')){ try{ setPhoneField_('telCC','tel',j.rl_tel); }catch(e){} }                       // recharge tél RL
-      if(j.ppe){ var pr=document.querySelector('input[name=ppe][value="'+j.ppe+'"]'); if(pr) pr.checked=true; }      // recharge la déclaration PPE
-      if(j.beneficiaires && j.beneficiaires.length){                                                                // recharge les bénéficiaires effectifs déjà saisis
-        state.bes=j.beneficiaires.map(function(b){ return {prenom:b.prenom||'',nom:b.nom||'',rue:b.domicile||'',cp:'',ville:'',pays:'',pct:b.pct||'',cc:'FR',tel:b.tel||'',email:b.email||''}; });
-        try{ if(typeof renderBE==='function' && document.getElementById('beList')) renderBE(); }catch(e){}
-      }
-    }).catch(function(){}); }catch(e){} }
     var setv=function(id,v){ var el=document.getElementById(id); if(el && v) el.value=v; };
+    // Charge l'identité société depuis data.gouv — PAR SIRET dès qu'on le connaît (le SIRET remonte
+    // l'établissement exact dans matching_etablissements ; le SIREN seul renvoie une liste vide et
+    // retombe sur le siège). Le SIRET client vient du lien (?siret=) ou de la fiche enregistrée (/card).
+    var _loaded=false;
+    function loadCompany(q){
+      if(_loaded) return;
+      q=String(q||'').replace(/\D/g,'');
+      if(!q){ if(u){ loadClientFiles(u); loadCardFromArchie(u,siren); } return; }
+      _loaded=true;
+      fetch('https://recherche-entreprises.api.gouv.fr/search?per_page=1&q='+q)
+        .then(function(r){return r.json();})
+        .then(function(j){
+          var res=(j.results||[]).filter(function(x){return x.siren===siren;})[0]||(j.results||[])[0];
+          if(!res){ if(u){ loadClientFiles(u); loadCardFromArchie(u,siren); } return; }
+          state._majCompany=res;
+          var want=siretParam||state._clientSiret||(q.length===14?q:'');
+          fillFromCompany(res, pickEtab_(res, want));   // établissement client précis (secondaire si SIRET connu)
+          reassertClientIdentity_();                    // filet : valeurs fiche si data.gouv n'a pas l'établissement
+          var i=document.getElementById('coSearch'); if(i){ i.value='✅ '+(raison||res.nom_raison_sociale||res.nom_complet||''); i.classList.add('cs-ok'); i.setAttribute('aria-expanded','false'); }
+          if(raison) setv('raison',raison);     // conserve notre dénomination arbitrée
+          if(email) setv('email',email); if(tel) setPhoneField_('telCC','tel',tel);
+          if(contact){ var pc=contact.trim().split(/\s+/); if(pc.length>=2){ setv('rlprenom',pc[0]); setv('rlnom',pc.slice(1).join(' ')); } }  // RL enregistré prioritaire sur data.gouv
+          if(typeof renderDirChips==='function') renderDirChips();   // resélectionne la bonne puce
+          renderStepper();
+          if(u) loadClientFiles(u);             // pièces déjà en notre possession (Archie) -> checklist
+        }).catch(function(){ if(u){ loadClientFiles(u); loadCardFromArchie(u,siren); } });
+    }
     if(centre){ var cs=document.getElementById('centre'); if(cs){ cs.value=centre; centreStyle(); } }
     if(dom==='1'||dom==='oui'||dom==='Oui') setDom(true); else if(dom==='0'||dom==='non'||dom==='Non') setDom(false);
     setv('raison',raison); setv('email',email); if(tel) setPhoneField_('telCC','tel',tel);
@@ -1853,23 +1873,27 @@ function prefillFromURL(){
       var same=document.getElementById('ownerSame');
       if(same && owner.trim().toUpperCase()!==contact.trim().toUpperCase()){ same.checked=false; toggleOwnerSame(); } }
     majBanner_(raison, contact);
-    if(/^\d{9}$/.test(siren)){
-      fetch('https://recherche-entreprises.api.gouv.fr/search?per_page=1&q='+siren)
-        .then(function(r){return r.json();})
-        .then(function(j){
-          var res=(j.results||[]).filter(function(x){return x.siren===siren;})[0]||(j.results||[])[0];
-          if(!res) return;
-          state._majCompany=res;                 // conservé pour corriger l'établissement si le SIRET Archie arrive ensuite
-          fillFromCompany(res, pickEtab_(res, siretParam||state._majSiret));   // adresse, forme, TVA, RL, capital (INPI), BODACC, docs… (établissement client si connu)
-          var i=document.getElementById('coSearch'); if(i){ i.value='✅ '+(raison||res.nom_raison_sociale||res.nom_complet||''); i.classList.add('cs-ok'); i.setAttribute('aria-expanded','false'); }
-          if(raison) setv('raison',raison);     // conserve notre dénomination arbitrée
-          if(email) setv('email',email); if(tel) setPhoneField_('telCC','tel',tel);
-          if(contact){ var pc=contact.trim().split(/\s+/); if(pc.length>=2){ setv('rlprenom',pc[0]); setv('rlnom',pc.slice(1).join(' ')); } }  // RL enregistré prioritaire sur data.gouv
-          if(typeof renderDirChips==='function') renderDirChips();   // resélectionne la bonne puce
-          renderStepper();
-          if(u) loadClientFiles(u);             // pièces déjà en notre possession (Archie) -> checklist
-        }).catch(function(){ if(u){ loadClientFiles(u); loadCardFromArchie(u,siren); } });
-    } else if(u){ loadClientFiles(u); loadCardFromArchie(u,siren); }   // pas de SIRET -> identité de la structure depuis Archie
+    // Compte existant : on lit d'abord la fiche (SIRET + adresse client = source de vérité), PUIS on
+    // interroge data.gouv PAR CE SIRET. Sans compte : SIRET du lien, à défaut SIREN.
+    if(u && CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)+(siren?'&sn='+encodeURIComponent(siren):'')).then(function(r){return r.json();}).then(function(j){
+      if(!j||!j.ok){ loadCompany(siretParam||siren); return; }
+      applyClientCard_(j);   // SIRET + adresse de l'établissement client, tels qu'enregistrés
+      if(j.sanction){ var sc=document.getElementById('sanction'); if(sc) sc.checked=true; }   // attestation sanctions/gel des avoirs
+      if(j.fiche_lcb && j.fiche_lcb._raw){ Object.assign(state.lcb, j.fiche_lcb._raw); if(state.lcb.c_nationalite) state.lcb.c_nationalite=normNat_(state.lcb.c_nationalite); }   // recharge le questionnaire LCB-FT
+      if(!state.lcb.c_nationalite && j.nationalite){ state.lcb.c_nationalite=normNat_(j.nationalite); }
+      try{ natP1Render_(); }catch(e){}
+      if(state.dom && typeof renderLCB==='function' && document.getElementById('lcbBody')) renderLCB();
+      if(j.rl_adresse){ var ra=document.getElementById('rladresse'); if(ra && !ra.value) ra.value=j.rl_adresse; }   // adresse RL
+      if(j.rl_email){ var em=document.getElementById('email'); if(em && !em.value) em.value=j.rl_email; }            // e-mail RL
+      if(j.rl_tel && !val('tel')){ try{ setPhoneField_('telCC','tel',j.rl_tel); }catch(e){} }                       // tél RL
+      if(j.ppe){ var pr=document.querySelector('input[name=ppe][value="'+j.ppe+'"]'); if(pr) pr.checked=true; }      // déclaration PPE
+      if(j.beneficiaires && j.beneficiaires.length){                                                                // bénéficiaires effectifs
+        state.bes=j.beneficiaires.map(function(b){ return {prenom:b.prenom||'',nom:b.nom||'',rue:b.domicile||'',cp:'',ville:'',pays:'',pct:b.pct||'',cc:'FR',tel:b.tel||'',email:b.email||''}; });
+        try{ if(typeof renderBE==='function' && document.getElementById('beList')) renderBE(); }catch(e){}
+      }
+      loadCompany(state._clientSiret||siretParam||siren);   // ← requête data.gouv PAR SIRET client
+    }).catch(function(){ loadCompany(siretParam||siren); }); }catch(e){ loadCompany(siretParam||siren); } }
+    else { loadCompany(siretParam||siren); }
   }catch(e){}
 }
 /* /maj sans SIRET exploitable — pré-remplit l'identité de la structure (adresse, etc.) depuis le compte Archie. */
