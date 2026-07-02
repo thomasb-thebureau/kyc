@@ -247,6 +247,8 @@ body.dark .badge.recent{color:#e0a36a}
 .cs-opt b{font-weight:600;font-size:13px}
 .cs-opt small{color:var(--gris);font-size:11px}
 .cs-empty{padding:10px 13px;color:var(--gris);font-size:12px}
+.cs-tag{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;background:var(--or);color:#1a1a1a;vertical-align:middle;margin-left:4px;letter-spacing:.02em}
+.cs-tag.siege{background:var(--gris);color:#fff}
 .rl-recap{font-size:12.5px;color:var(--encre);background:var(--vp);border:1px solid var(--cf);border-radius:9px;padding:10px 13px;margin-bottom:13px}
 .rl-recap b{font-weight:700}
 #coSearch{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23B09438' stroke-width='2'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");background-repeat:no-repeat;background-position:right 13px center;padding-right:38px}
@@ -705,6 +707,8 @@ const I18N = {
   f_cosearch:{fr:'Rechercher mon entreprise (nom, SIREN ou SIRET)',en:'Find my company (name, SIREN or SIRET)'},
   cosearch_hint:{fr:'Pré-remplit automatiquement les champs ci-dessous · source : Annuaire des Entreprises (data.gouv).',en:'Auto-fills the fields below · source: French company directory (data.gouv).'},
   cosearch_empty:{fr:'Aucun résultat',en:'No result'},
+  cs_siege:{fr:'siège',en:'head office'},
+  cs_etab:{fr:'établissement',en:'establishment'},
   f_adresse:{fr:'Adresse du siège social',en:'Registered-office address'},
   f_adresse_hint:{fr:'Renseignée automatiquement d\'après le numéro de SIRET ; si elle a changé récemment, la mise à jour se fait automatiquement.',en:'Auto-filled from the SIRET number; if it has changed recently, the update is automatic.'},
   dir_label:{fr:'Dirigeant(s) déclaré(s)',en:'Declared director(s)'},
@@ -1203,20 +1207,56 @@ async function coSearch(){
   try{
     const r=await fetch('https://recherche-entreprises.api.gouv.fr/search?per_page=6&q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
     if(!r.ok) throw new Error(r.status);
-    const j=await r.json(); _coResults=j.results||[];
+    const j=await r.json(); _coResults=coTargets_(j.results||[]);
     box.innerHTML=_coResults.length
-      ? _coResults.map((x,i)=>{ const s=x.siege||{}; return `<div class="cb-opt cs-opt" role="option" onmousedown="coPick(${i})"><b>${esc(x.nom_raison_sociale||x.nom_complet||'—')}</b><br><small>${fmtSiren(x.siren||'')}${s.adresse?' · '+esc(s.adresse):''}</small></div>`; }).join('')
+      ? _coResults.map((it,i)=>{ const et=it.et||{}, sir=et.siret||it.r.siren||''; const tag=it.siege?t('cs_siege'):t('cs_etab'); return `<div class="cb-opt cs-opt" role="option" onmousedown="coPick(${i})"><b>${esc(it.r.nom_raison_sociale||it.r.nom_complet||'—')}</b> <span class="cs-tag${it.siege?' siege':''}">${tag}</span><br><small>${et.siret?fmtSiret(et.siret):fmtSiren(sir)}${et.adresse?' · '+esc(et.adresse):''}</small></div>`; }).join('')
       : `<div class="cs-empty">${t('cosearch_empty')}</div>`;
     box.style.display='block'; inp.setAttribute('aria-expanded','true');
   }catch(e){ box.style.display='none'; }
 }
+/* Un client peut être l'établissement SECONDAIRE (et non le siège) : on aplatit chaque
+   résultat en cibles sélectionnables — le siège, puis chaque établissement secondaire
+   ouvert remonté par l'API (matching_etablissements). L'utilisateur choisit le bon SIRET. */
+function coTargets_(results){
+  const out=[];
+  (results||[]).forEach(function(r){
+    const sg=r.siege||{}, seen={};
+    out.push({r:r, et:sg, siege:true}); if(sg.siret) seen[sg.siret]=1;
+    (r.matching_etablissements||[]).forEach(function(e){
+      if(!e||!e.siret||seen[e.siret]||e.est_siege) return;
+      if(e.etat_administratif && e.etat_administratif!=='A') return;   // établissements fermés masqués
+      out.push({r:r, et:e, siege:false}); seen[e.siret]=1;
+    });
+  });
+  return out.slice(0,15);
+}
+/* Retrouve l'établissement (siège ou secondaire) correspondant à un SIRET donné. */
+function pickEtab_(r, siret){
+  if(!r) return null;
+  const sg=r.siege||{}; siret=String(siret||'').replace(/\D/g,'');
+  if(!siret) return sg;
+  if(String(sg.siret||'')===siret) return sg;
+  const m=(r.matching_etablissements||[]).find(function(e){return String(e.siret||'')===siret;});
+  return m||sg;
+}
+/* /maj — applique le SIRET client (établissement) connu d'Archie : choisit le bon
+   établissement de la société déjà chargée (siège OU secondaire) et corrige SIRET + adresse.
+   Si la société n'est pas encore chargée, mémorise le SIRET pour la sélection à venir. */
+function applyClientSiret_(siret){
+  siret=String(siret||'').replace(/\D/g,''); if(!siret) return;
+  state._majSiret=siret;
+  var r=state._majCompany; if(!r) return;
+  var e=pickEtab_(r, siret); if(!e) return;
+  var si=document.getElementById('siret'); if(si && e.siret) si.value=fmtSiret(e.siret);
+  var ad=document.getElementById('adresse'); if(ad && e.adresse) ad.value=e.adresse;
+}
 function esc(s){ return String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 function coHide(){ setTimeout(()=>{ const b=document.getElementById('coList'); if(b) b.style.display='none'; const i=document.getElementById('coSearch'); if(i) i.setAttribute('aria-expanded','false'); },180); }
 function coPick(i){
-  const r=_coResults[i]; if(!r) return; fillFromCompany(r);
+  const it=_coResults[i]; if(!it) return; const r=it.r, et=it.et||{}; fillFromCompany(r, et);
   const b=document.getElementById('coList'); if(b) b.style.display='none';
-  const inp=document.getElementById('coSearch'), s=r.siege||{};
-  inp.value='✅ '+(r.nom_raison_sociale||r.nom_complet||'')+(s.siret?' · SIRET '+fmtSiret(s.siret):'')+(s.adresse?' · '+s.adresse:'');
+  const inp=document.getElementById('coSearch');
+  inp.value='✅ '+(r.nom_raison_sociale||r.nom_complet||'')+(et.siret?' · SIRET '+fmtSiret(et.siret):'')+(et.adresse?' · '+et.adresse:'');
   inp.classList.add('cs-ok'); inp.setAttribute('aria-expanded','false');
   renderStepper();
 }
@@ -1245,19 +1285,21 @@ function mapForme(code, comp){
   if(code==='5195'||code[0]==='9') return 'Association';
   return '';
 }
-function fillFromCompany(r){
+function fillFromCompany(r, et){
   const s=r.siege||{}, comp=r.complements||{};
+  const tgt=et||s;   // établissement CLIENT : siège par défaut, ou l'établissement secondaire choisi
   const setv=(id,v)=>{ const el=document.getElementById(id); if(el&&v!=null&&v!=='') el.value=v; };
   setv('raison', r.nom_raison_sociale||r.nom_complet);
   setv('siren', fmtSiren(r.siren));
-  setv('siret', fmtSiret(s.siret));
-  setv('adresse', s.adresse);
+  setv('siret', fmtSiret(tgt.siret||s.siret));
+  setv('adresse', tgt.adresse||s.adresse);
   // N° TVA intracom français calculé depuis le SIREN
   if(r.siren && /^\d{9}$/.test(r.siren)){ const n=parseInt(r.siren,10); const cle=(12+3*(n%97))%97; setv('tva',fmtTva('FR'+String(cle).padStart(2,'0')+r.siren)); }
   // Forme juridique
   const forme=mapForme(r.nature_juridique, comp); if(forme){ const fs=document.getElementById('forme'); if([...fs.options].some(o=>o.value===forme)) fs.value=forme; }
-  // Siège à l'ÉTRANGER (data.gouv) -> coche la case automatiquement + forme « Autre » (via toggleEtr)
-  if(s.libelle_pays_etranger||s.libelle_commune_etranger||s.code_pays_etranger){ var ec=document.getElementById('etranger'); if(ec && !ec.checked){ ec.checked=true; toggleEtr(); } }
+  // Établissement client à l'ÉTRANGER (data.gouv) -> coche la case automatiquement + forme « Autre » (via toggleEtr).
+  // NB : on se base sur l'établissement retenu (un siège étranger peut avoir un établissement secondaire français, et inversement).
+  if(tgt.libelle_pays_etranger||tgt.libelle_commune_etranger||tgt.code_pays_etranger){ var ec=document.getElementById('etranger'); if(ec && !ec.checked){ ec.checked=true; toggleEtr(); } }
   // Représentant légal = 1er dirigeant personne physique
   const dirs=r.dirigeants||[];
   const dpp=dirs.find(d=>(d.type_dirigeant==='personne physique')||d.prenoms);
@@ -1661,7 +1703,7 @@ function createAccount(){
   if(!CONFIG.ENDPOINT || state.archieUuid || state.creating || !val('raison')) return;
   state.creating=true;
   const ow=ownerVals_();
-  const b={action:'create', raison:val('raison'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''),
+  const b={action:'create', raison:val('raison'), siren:val('siren'), siret:val('siret'),   /* séparateurs conservés pour Archie (XXX XXX XXX / XXX XXX XXX XXX XX) */
            email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '), tel:rlTel_(),
            ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
            centre:val('centre'), dom:state.dom?1:0};
@@ -1676,7 +1718,7 @@ function autoSave_(){
     if(!CONFIG.ENDPOINT || !val('raison')) return;
     const ow=ownerVals_();
     const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), forme:val('forme'),
-             siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''),
+             siren:val('siren'), siret:val('siret'), tva:val('tva'),   /* séparateurs conservés pour Archie */
              rna:val('rna'), adresse:val('adresse'), etranger:state.etranger, entity:state.entity,
              email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
              rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
@@ -1701,8 +1743,8 @@ async function saveProgress(btn){
       const ids=currentDocIds(), files=[];
       for(const id of ids){ const f=state.files[id]; if(f&&f.blob&&!f.fromArchie){ files.push({docId:id, name:fmtFileName(id,f.name), mimeType:f.blob.type||'application/pdf', dataB64:await readB64(f.blob)}); } }
       const ow=ownerVals_();
-      const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren').replace(/\s/g,''),
-               siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), adresse:val('adresse'),
+      const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren'),
+               siret:val('siret'), tva:val('tva'), adresse:val('adresse'),   /* séparateurs conservés pour Archie */
                email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
                rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
                ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
@@ -1721,7 +1763,7 @@ function buildPayload(){
     meta:{
       rattachement:CENTRES.find(c=>c.id===val('centre'))||null,
       domiciliation:state.dom, entity:state.entity, etranger:state.etranger, loi1901:state.loi1901,
-      raison:val('raison'), forme:val('forme'), siren:val('siren').replace(/\s/g,''), siret:val('siret').replace(/\s/g,''), tva:val('tva').replace(/\s/g,''), rna:val('rna'), adresse:val('adresse'),
+      raison:val('raison'), forme:val('forme'), siren:val('siren'), siret:val('siret'), tva:val('tva'), rna:val('rna'), adresse:val('adresse'),   /* séparateurs conservés (Archie + récap + GSheet) */
       rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
       owner:(function(o){return {prenom:o.prenom,nom:o.nom,email:o.email,tel:o.tel};})(ownerVals_()),
       ppe:document.querySelector('input[name=ppe]:checked').value,
@@ -1777,6 +1819,7 @@ function prefillFromURL(){
   try{
     var p=new URLSearchParams(location.search);
     var siren=(p.get('siren')||'').replace(/\D/g,'');
+    var siretParam=(p.get('siret')||'').replace(/\D/g,'');   // établissement client explicite (secondaire possible)
     var raison=p.get('raison')||'', email=p.get('email')||'', tel=p.get('tel')||'',
         centre=p.get('centre')||'', contact=p.get('contact')||'', owner=p.get('owner')||'',
         dom=p.get('dom')||'', u=p.get('u')||'';
@@ -1785,6 +1828,7 @@ function prefillFromURL(){
     // Attestation « sanctions & gel des avoirs » : restaurée si elle a déjà été cochée (persistée côté serveur)
     if(u && CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)+(siren?'&sn='+encodeURIComponent(siren):'')).then(function(r){return r.json();}).then(function(j){
       if(!j||!j.ok) return;
+      if(j.siret) applyClientSiret_(j.siret);   // SIRET client stocké dans Archie -> sélectionne le bon établissement (siège ou secondaire)
       if(j.sanction){ var sc=document.getElementById('sanction'); if(sc) sc.checked=true; }
       if(j.fiche_lcb && j.fiche_lcb._raw){ Object.assign(state.lcb, j.fiche_lcb._raw); if(state.lcb.c_nationalite) state.lcb.c_nationalite=normNat_(state.lcb.c_nationalite); }   // recharge le questionnaire LCB-FT déjà rempli (nationalité ramenée au féminin)
       if(!state.lcb.c_nationalite && j.nationalite){ state.lcb.c_nationalite=normNat_(j.nationalite); }   // sinon, nationalité téléchargée à la création (data.gouv/INPI) -> pré-remplie, modifiable
@@ -1815,7 +1859,8 @@ function prefillFromURL(){
         .then(function(j){
           var res=(j.results||[]).filter(function(x){return x.siren===siren;})[0]||(j.results||[])[0];
           if(!res) return;
-          fillFromCompany(res);                 // adresse, forme, TVA, RL, capital (INPI), BODACC, docs…
+          state._majCompany=res;                 // conservé pour corriger l'établissement si le SIRET Archie arrive ensuite
+          fillFromCompany(res, pickEtab_(res, siretParam||state._majSiret));   // adresse, forme, TVA, RL, capital (INPI), BODACC, docs… (établissement client si connu)
           var i=document.getElementById('coSearch'); if(i){ i.value='✅ '+(raison||res.nom_raison_sociale||res.nom_complet||''); i.classList.add('cs-ok'); i.setAttribute('aria-expanded','false'); }
           if(raison) setv('raison',raison);     // conserve notre dénomination arbitrée
           if(email) setv('email',email); if(tel) setPhoneField_('telCC','tel',tel);
