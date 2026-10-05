@@ -403,10 +403,14 @@ body.dark .page-sub b{color:var(--ivoire)}
           </select>
         </div>
       </div>
-      <div class="row3">
+      <div class="row3" id="frIdent">
         <div class="fg"><label class="fl" for="siren" data-i="f_siren">N° SIREN <span class="req">*</span></label><input class="finp" id="siren" inputmode="numeric" oninput="this.value=fmtSiren(this.value)"></div>
         <div class="fg"><label class="fl" for="siret" data-i="f_siret">N° SIRET <span class="req">*</span></label><input class="finp" id="siret" inputmode="numeric" oninput="this.value=fmtSiret(this.value)"></div>
         <div class="fg"><label class="fl" for="tva" data-i="f_tva">N° TVA <span class="req">*</span></label><input class="finp" id="tva" oninput="this.value=fmtTva(this.value)"></div>
+      </div>
+      <div class="row2" id="etrIdent" style="display:none">
+        <div class="fg"><label class="fl" for="paysImmat" data-i="f_paysimmat">Pays d'immatriculation <span class="req">*</span></label><select class="fsel" id="paysImmat"></select></div>
+        <div class="fg"><label class="fl" for="numImmat" data-i="f_numimmat">N° de registre / d'entreprise <span class="req">*</span></label><input class="finp" id="numImmat" autocomplete="off"></div>
       </div>
       <div class="fg"><label class="fl" for="adresse" data-i="f_adresse">Adresse du siège social <span class="req">*</span></label><input class="finp" id="adresse" autocomplete="off" oninput="banInput(this,'siege')" onblur="banBlur()"><div class="ahint" data-i="f_adresse_hint">Renseignée automatiquement d'après le numéro de SIRET ; si elle a changé récemment, la mise à jour se fait automatiquement.</div></div>
       <div class="fg" id="rnaRow" style="display:none"><label class="fl" for="rna" data-i="f_rna">N° RNA — Répertoire National des Associations <span class="req">*</span></label><input class="finp" id="rna" placeholder="W123456789"></div>
@@ -714,7 +718,7 @@ const I18N = {
   dir_label:{fr:'Dirigeant(s) déclaré(s)',en:'Declared director(s)'},
   dir_pick:{fr:'Cliquez pour désigner le représentant légal',en:'Click to set the legal representative'},
   f_raison:{fr:'Dénomination sociale <span class="req">*</span>',en:'Legal name <span class="req">*</span>'},
-  f_forme:{fr:'Forme juridique <span class="req">*</span>',en:'Legal form <span class="req">*</span>'},f_siren:{fr:'N° SIREN <span class="req">*</span>',en:'SIREN no. <span class="req">*</span>'},f_siret:{fr:'N° SIRET <span class="req">*</span>',en:'SIRET no. <span class="req">*</span>'},f_tva:{fr:'N° TVA <span class="req">*</span>',en:'VAT no. <span class="req">*</span>'},
+  f_forme:{fr:'Forme juridique <span class="req">*</span>',en:'Legal form <span class="req">*</span>'},f_siren:{fr:'N° SIREN <span class="req">*</span>',en:'SIREN no. <span class="req">*</span>'},f_siret:{fr:'N° SIRET <span class="req">*</span>',en:'SIRET no. <span class="req">*</span>'},f_tva:{fr:'N° TVA <span class="req">*</span>',en:'VAT no. <span class="req">*</span>'},f_paysimmat:{fr:'Pays d\'immatriculation <span class="req">*</span>',en:'Country of registration <span class="req">*</span>'},f_numimmat:{fr:'N° de registre / d\'entreprise <span class="req">*</span>',en:'Company / registry no. <span class="req">*</span>'},
   forme_ph:{fr:'Sélectionnez…',en:'Select…'},forme_autre:{fr:'Autre',en:'Other'},
   f_rna:{fr:'N° RNA — Répertoire National des Associations',en:'RNA number — national associations register'},
   sec_rl:{fr:'Représentant légal',en:'Legal representative'},
@@ -803,7 +807,10 @@ function renderCentres(){
 }
 function centreStyle(){ const s=document.getElementById('centre'); if(s) s.classList.toggle('chosen', !!s.value); }
 function setDom(v){ state.dom=v; document.getElementById('domOui').classList.toggle('on',v); document.getElementById('domNon').classList.toggle('on',!v); renderDocs(); renderStepper(); }
-function toggleEtr(){ state.etranger=document.getElementById('etranger').checked; document.getElementById('etrSw').classList.toggle('on',state.etranger); if(state.etranger){ var f=document.getElementById('forme'); if(f) f.value='autre'; }   /* siège à l'étranger -> forme juridique « Autre » */ renderDocs(); }
+function toggleEtr(){ state.etranger=document.getElementById('etranger').checked; document.getElementById('etrSw').classList.toggle('on',state.etranger); if(state.etranger){ var f=document.getElementById('forme'); if(f) f.value='autre'; fillPaysImmat_(); }   /* siège à l'étranger -> forme juridique « Autre » */ var _fr=document.getElementById('frIdent'),_et=document.getElementById('etrIdent'); if(_fr) _fr.style.display=state.etranger?'none':''; if(_et) _et.style.display=state.etranger?'':'none'; if(typeof renderStepper==='function') renderStepper(); renderDocs(); }
+function fillPaysImmat_(){ var s=document.getElementById('paysImmat'); if(!s||s._filled) return; s.innerHTML='<option value="">Sélectionnez…</option>'+WORLD.filter(function(p){return p[1]!=='FR';}).map(function(p){return '<option value="'+p[1]+'">'+p[0]+'</option>';}).join(''); s._filled=1; }
+function paysImmat_(){ return state.etranger?((val('paysImmat')||'').toUpperCase()):'FR'; }
+function numEnt_(){ return state.etranger?(val('numImmat')||''):val('siret'); }
 function toggleLoi(){ state.loi1901=document.getElementById('loi1901').checked; document.getElementById('loiSw').classList.toggle('on',state.loi1901); updateRnaRow(); renderDocs(); }
 
 function currentDocIds(){
@@ -1553,7 +1560,7 @@ const PANELS=[
 function activePanels(){ return PANELS.filter(p=>!p.domOnly||state.dom); }
 /* Une étape est-elle complète ? (pilote la coche verte vs le sablier orange) */
 function stepComplete(key){
-  if(key==='structure'){ const sir=state.entity==='asso'?true:(val('siret')&&val('tva')); return !!(val('centre')&&val('raison')&&val('forme')&&val('siren')&&sir&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')); }
+  if(key==='structure'){ if(state.etranger){ return !!(val('centre')&&val('raison')&&val('paysImmat')&&val('numImmat')&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')); } const sir=state.entity==='asso'?true:(val('siret')&&val('tva')); return !!(val('centre')&&val('raison')&&val('forme')&&val('siren')&&sir&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')); }
   if(key==='decl'){ return document.getElementById('sanction').checked; }
   if(key==='lcb'){ return lcbRequired().every(id=>state.lcb[id]&&String(state.lcb[id]).trim()); }
   if(key==='docs'){ const ids=currentDocIds(); return ids.length>0 && ids.every(docReady); }
@@ -1729,7 +1736,7 @@ function autoSave_(){
     if(!CONFIG.ENDPOINT || !val('raison')) return;
     const ow=ownerVals_();
     const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), forme:val('forme'),
-             siren:val('siren'), siret:val('siret'), tva:val('tva'),   /* séparateurs conservés pour Archie */
+             siren:state.etranger?'':val('siren'), siret:numEnt_(), tva:state.etranger?'':val('tva'), pays:paysImmat_(),
              rna:val('rna'), adresse:val('adresse'), etranger:state.etranger, entity:state.entity,
              email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
              rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
@@ -1754,8 +1761,9 @@ async function saveProgress(btn){
       const ids=currentDocIds(), files=[];
       for(const id of ids){ const f=state.files[id]; if(f&&f.blob&&!f.fromArchie){ files.push({docId:id, name:fmtFileName(id,f.name), mimeType:f.blob.type||'application/pdf', dataB64:await readB64(f.blob)}); } }
       const ow=ownerVals_();
-      const b={action:'save', uuid:state.archieUuid||'', raison:val('raison'), siren:val('siren'),
-               siret:val('siret'), tva:val('tva'), adresse:val('adresse'),   /* séparateurs conservés pour Archie */
+      const b={action:'save', uuid:state.archieUuid||'', ensure:1, raison:val('raison'),
+               siren:state.etranger?'':val('siren'), siret:numEnt_(), tva:state.etranger?'':val('tva'),
+               pays:paysImmat_(), adresse:val('adresse'),   /* séparateurs conservés pour Archie */
                email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
                rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
                ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
@@ -1774,7 +1782,7 @@ function buildPayload(){
     meta:{
       rattachement:CENTRES.find(c=>c.id===val('centre'))||null,
       domiciliation:state.dom, entity:state.entity, etranger:state.etranger, loi1901:state.loi1901,
-      raison:val('raison'), forme:val('forme'), siren:val('siren'), siret:val('siret'), tva:val('tva'), rna:val('rna'), adresse:val('adresse'),   /* séparateurs conservés (Archie + récap + GSheet) */
+      raison:val('raison'), forme:val('forme'), siren:state.etranger?'':val('siren'), siret:numEnt_(), tva:state.etranger?'':val('tva'), pays:paysImmat_(), rna:val('rna'), adresse:val('adresse'),   /* séparateurs conservés (Archie + récap + GSheet) */
       rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
       owner:(function(o){return {prenom:o.prenom,nom:o.nom,email:o.email,tel:o.tel};})(ownerVals_()),
       ppe:document.querySelector('input[name=ppe]:checked').value,
