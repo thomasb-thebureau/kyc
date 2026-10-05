@@ -385,6 +385,11 @@ body.dark .page-sub b{color:var(--ivoire)}
         <input type="checkbox" id="etranger" class="vh" onchange="toggleEtr()">
         <span><span class="t1" data-i="etr1">Siège social à l'étranger</span><span class="t2" data-i="etr2"> · ajoute un justificatif de validité juridique</span></span>
       </label>
+      <label class="tgl-row" id="encRow">
+        <span class="sw" id="encSw"><i></i></span>
+        <input type="checkbox" id="encreation" class="vh" onchange="toggleEncreation()">
+        <span><span class="t1" data-i="enc1">Société en cours de création</span><span class="t2" data-i="enc2"> · pas encore immatriculée (SIRET provisoire)</span></span>
+      </label>
       <label class="tgl-row" id="loiRow" style="display:none">
         <span class="sw" id="loiSw"><i></i></span>
         <input type="checkbox" id="loi1901" class="vh" onchange="toggleLoi()">
@@ -684,7 +689,7 @@ const REQS = {
 };
 
 /* ===== État ===== */
-const state = { lang:'fr', dom:false, entity:'societe', etranger:false, loi1901:false, idx:0, files:{}, bes:[], lcb:{} };
+const state = { lang:'fr', dom:false, entity:'societe', etranger:false, encreation:false, loi1901:false, idx:0, files:{}, bes:[], lcb:{} };
 
 /* ============================================================
    i18n
@@ -705,6 +710,7 @@ const I18N = {
   dom_non:{fr:'Sans domiciliation',en:'Without domiciliation'},dom_oui:{fr:'Avec domiciliation',en:'With domiciliation'},
   sec_type:{fr:'Type de structure',en:'Type of entity'},
   etr1:{fr:'Siège social à l\'étranger',en:'Head office abroad'},etr2:{fr:' · ajoute un justificatif de validité juridique',en:' · adds a legal-validity document'},
+  enc1:{fr:'Société en cours de création',en:'Company being incorporated'},enc2:{fr:' · pas encore immatriculée (SIRET provisoire)',en:' · not yet registered (provisional SIRET)'},
   loi1:{fr:'Association loi 1901',en:'Law-1901 association'},loi2:{fr:' · ajoute le n° RNA',en:' · adds the RNA number'},
   sec_ident:{fr:'Identité de la structure',en:'Entity identity'},
   sec_search:{fr:'Trouvez votre entreprise',en:'Find your company'},
@@ -809,8 +815,9 @@ function centreStyle(){ const s=document.getElementById('centre'); if(s) s.class
 function setDom(v){ state.dom=v; document.getElementById('domOui').classList.toggle('on',v); document.getElementById('domNon').classList.toggle('on',!v); renderDocs(); renderStepper(); }
 function toggleEtr(){ state.etranger=document.getElementById('etranger').checked; document.getElementById('etrSw').classList.toggle('on',state.etranger); if(state.etranger){ var f=document.getElementById('forme'); if(f) f.value='autre'; fillPaysImmat_(); }   /* siège à l'étranger -> forme juridique « Autre » */ var _fr=document.getElementById('frIdent'),_et=document.getElementById('etrIdent'); if(_fr) _fr.style.display=state.etranger?'none':''; if(_et) _et.style.display=state.etranger?'':'none'; if(typeof renderStepper==='function') renderStepper(); renderDocs(); }
 function fillPaysImmat_(){ var s=document.getElementById('paysImmat'); if(!s||s._filled) return; s.innerHTML='<option value="">Sélectionnez…</option>'+WORLD.filter(function(p){return p[1]!=='FR';}).map(function(p){return '<option value="'+p[1]+'">'+p[0]+'</option>';}).join(''); s._filled=1; }
-function paysImmat_(){ return state.etranger?((val('paysImmat')||'').toUpperCase()):'FR'; }
+function paysImmat_(){ return state.etranger?((val('paysImmat')||'').toUpperCase()):''; }   /* FR/inconnu -> '' : le backend ne force JAMAIS le pays à FR (ne réécrit pas une société étrangère en France) */
 function numEnt_(){ return state.etranger?(val('numImmat')||''):val('siret'); }
+function toggleEncreation(){ state.encreation=document.getElementById('encreation').checked; var sw=document.getElementById('encSw'); if(sw) sw.classList.toggle('on',state.encreation); var si=document.getElementById('siret'); if(state.encreation){ if(!state.etranger && si && !(si.value||'').replace(/\D/g,'').replace(/^0+$/,'')) si.value='000'; } else { if(si && /^0+$/.test((si.value||'').replace(/\D/g,''))) si.value=''; } if(typeof renderStepper==='function') renderStepper(); }
 function toggleLoi(){ state.loi1901=document.getElementById('loi1901').checked; document.getElementById('loiSw').classList.toggle('on',state.loi1901); updateRnaRow(); renderDocs(); }
 
 function currentDocIds(){
@@ -1253,11 +1260,20 @@ function pickEtab_(r, siret){
 function applyClientCard_(j){
   if(!j) return;
   var raw=((j.fiche_lcb||{})._raw)||{}, ident=((j.fiche_lcb||{}).identite)||{};
-  var siret=String(j.siret||raw.c_rcs||'').replace(/\D/g,'');
   var adr=j.adresse||'';
   var tail=[j.cp, j.ville].filter(Boolean).join(' ');
   if(adr && j.cp && String(adr).toUpperCase().indexOf(String(j.cp))<0) adr=[adr,tail].filter(Boolean).join(' ');
   if(!adr && ident.c_siege) adr=ident.c_siege.valeur||'';
+  if(j.encreation){ var _ec=document.getElementById('encreation'); if(_ec && !_ec.checked){ _ec.checked=true; toggleEncreation(); } }   // société en cours de création -> recoche la case
+  if(j.pays && j.pays!=='FR'){                 // société ÉTRANGÈRE : restaure « siège à l'étranger » + pays + n° de registre TEL QUEL (lettres conservées)
+    var _etc=document.getElementById('etranger'); if(_etc && !_etc.checked){ _etc.checked=true; toggleEtr(); }
+    fillPaysImmat_(); var _ps=document.getElementById('paysImmat'); if(_ps) _ps.value=j.pays;
+    var _ni=document.getElementById('numImmat'); if(_ni && j.siret && !_ni.value) _ni.value=j.siret;
+    if(adr) state._clientAdresse=adr;
+    reassertClientIdentity_();
+    return;
+  }
+  var siret=String(j.siret||raw.c_rcs||'').replace(/\D/g,'');
   if(siret) state._clientSiret=siret;
   if(adr) state._clientAdresse=adr;
   reassertClientIdentity_();
@@ -1560,7 +1576,7 @@ const PANELS=[
 function activePanels(){ return PANELS.filter(p=>!p.domOnly||state.dom); }
 /* Une étape est-elle complète ? (pilote la coche verte vs le sablier orange) */
 function stepComplete(key){
-  if(key==='structure'){ if(state.etranger){ return !!(val('centre')&&val('raison')&&val('paysImmat')&&val('numImmat')&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')); } const sir=state.entity==='asso'?true:(val('siret')&&val('tva')); return !!(val('centre')&&val('raison')&&val('forme')&&val('siren')&&sir&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')); }
+  if(key==='structure'){ if(state.etranger){ return !!(val('centre')&&val('raison')&&val('paysImmat')&&val('numImmat')&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')); } if(state.encreation){ return !!(val('centre')&&val('raison')&&val('forme')&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')); } const sir=state.entity==='asso'?true:(val('siret')&&val('tva')); return !!(val('centre')&&val('raison')&&val('forme')&&val('siren')&&sir&&val('rlprenom')&&val('rlnom')&&/.+@.+\..+/.test(val('email'))&&val('tel')&&val('rladresse')); }
   if(key==='decl'){ return document.getElementById('sanction').checked; }
   if(key==='lcb'){ return lcbRequired().every(id=>state.lcb[id]&&String(state.lcb[id]).trim()); }
   if(key==='docs'){ const ids=currentDocIds(); return ids.length>0 && ids.every(docReady); }
@@ -1746,7 +1762,7 @@ function autoSave_(){
              beneficiaires:state.bes.filter(x=>x.nom).map(x=>({prenom:x.prenom,nom:x.nom,pct:x.pct,tel:combineCC_(x.cc||'FR',x.tel),email:x.email,domicile:[x.rue,x.cp,x.ville,x.pays].filter(Boolean).join(', ')})),
              sanction:document.getElementById('sanction').checked,
              fiche_lcb:state.dom?ficheLCB():null,
-             centre:val('centre'), dom:state.dom?1:0, lcb:state.lcb||null, files:[]};
+             centre:val('centre'), dom:state.dom?1:0, encreation:state.encreation, lcb:state.lcb||null, files:[]};
     fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)})
       .then(function(r){return r.json();}).then(function(j){ if(j&&j.uuid) state.archieUuid=j.uuid; toastSave_(state.lang==='en'?'✓ Saved':'✓ Enregistré'); }).catch(function(){});
   }catch(e){}
@@ -1767,7 +1783,7 @@ async function saveProgress(btn){
                email:val('email'), contact:[val('rlprenom'),val('rlnom')].filter(Boolean).join(' '),
                rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
                ownerContact:ow.contact, ownerEmail:ow.email, ownerTel:ow.tel,
-               centre:val('centre'), dom:state.dom?1:0, lcb:state.lcb||null, files:files};
+               centre:val('centre'), dom:state.dom?1:0, encreation:state.encreation, lcb:state.lcb||null, files:files};
       const r=await fetch(CONFIG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});
       const j=await r.json(); if(j&&j.uuid) state.archieUuid=j.uuid;
       toastSave_(state.lang==='en'?'✓ Saved':'✓ Enregistré');
@@ -1781,7 +1797,7 @@ function buildPayload(){
   return {
     meta:{
       rattachement:CENTRES.find(c=>c.id===val('centre'))||null,
-      domiciliation:state.dom, entity:state.entity, etranger:state.etranger, loi1901:state.loi1901,
+      domiciliation:state.dom, entity:state.entity, etranger:state.etranger, encreation:state.encreation, archieUuid:state.archieUuid||'', loi1901:state.loi1901,
       raison:val('raison'), forme:val('forme'), siren:state.etranger?'':val('siren'), siret:numEnt_(), tva:state.etranger?'':val('tva'), pays:paysImmat_(), rna:val('rna'), adresse:val('adresse'),   /* séparateurs conservés (Archie + récap + GSheet) */
       rl:{prenom:val('rlprenom'),nom:val('rlnom'),email:val('email'),tel:rlTel_(),adresse:val('rladresse')},
       owner:(function(o){return {prenom:o.prenom,nom:o.nom,email:o.email,tel:o.tel};})(ownerVals_()),
