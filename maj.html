@@ -1850,6 +1850,15 @@ function injectSaveButtons(){
 
 /* /maj — pré-remplit le questionnaire depuis les paramètres du lien
    (siren, raison, email, tel, centre = I|II|III|IV, contact = "Prénom Nom"). */
+function cardFetch_(url, tries){                // /maj : Apps Script renvoie parfois un interstitiel HTML au démarrage à froid (ou le SW sert une réponse en cache) -> cache-bust + réessais
+  tries = tries || 3;
+  return fetch(url + (url.indexOf('?') < 0 ? '?' : '&') + 'cb=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.text(); }).then(function(t){
+    var j = null; try{ j = JSON.parse(t); }catch(e){}
+    if(j && j.ok) return j;
+    if(tries > 1) return new Promise(function(res){ setTimeout(res, 900); }).then(function(){ return cardFetch_(url, tries - 1); });
+    return j;
+  });
+}
 function prefillFromURL(){
   try{
     var p=new URLSearchParams(location.search);
@@ -1901,7 +1910,7 @@ function prefillFromURL(){
     majBanner_(raison, contact);
     // Compte existant : on lit d'abord la fiche (SIRET + adresse client = source de vérité), PUIS on
     // interroge data.gouv PAR CE SIRET. Sans compte : SIRET du lien, à défaut SIREN.
-    if(u && CONFIG.ENDPOINT){ try{ fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)+(siren?'&sn='+encodeURIComponent(siren):'')).then(function(r){return r.json();}).then(function(j){
+    if(u && CONFIG.ENDPOINT){ try{ cardFetch_(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)+(siren?'&sn='+encodeURIComponent(siren):''), 3).then(function(j){
       if(!j||!j.ok){ loadCompany(siretParam||siren); return; }
       applyClientCard_(j);   // SIRET + adresse de l'établissement client, tels qu'enregistrés
       if(j.sanction){ var sc=document.getElementById('sanction'); if(sc) sc.checked=true; }   // attestation sanctions/gel des avoirs
@@ -1925,8 +1934,9 @@ function prefillFromURL(){
 /* /maj sans SIRET exploitable — pré-remplit l'identité de la structure (adresse, etc.) depuis le compte Archie. */
 function loadCardFromArchie(u,sn){
   if(!CONFIG.ENDPOINT || !u) return;
-  fetch(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)+(sn?'&sn='+encodeURIComponent(sn):'')).then(function(r){return r.json();}).then(function(j){
+  cardFetch_(CONFIG.ENDPOINT+'?card='+encodeURIComponent(u)+(sn?'&sn='+encodeURIComponent(sn):''), 3).then(function(j){
     if(!j || !j.ok) return;
+    if((j.pays && j.pays!=='FR') || j.encreation){ applyClientCard_(j); return; }   // société étrangère / en création -> restauration dédiée (étranger + n° de registre tel quel)
     var setIfEmpty=function(id,v){ var el=document.getElementById(id); if(el && v && !String(el.value||'').trim()) el.value=v; };
     setIfEmpty('raison', j.raison);
     var adr=String(j.adresse||'').toUpperCase(), tail=[j.cp,String(j.ville||'').toUpperCase()].filter(Boolean).join(' ');
